@@ -1,0 +1,52 @@
+%% file vxk.tex
+%% author thegreatchaos@thegreatchaos.com
+%% date 2026/05/25 15:22:12
+\subsection{build流程}
+参照vllm-xpu-kernels/build.sh. 
+\begin{lstlisting}
+bash build.sh &> /tmp/cmake.log #详细分析, cflags, lflags
+make VERBOSE=1 &> /tmp/make.log #build过程详细分析
+\end{lstlisting}
+
+需要注意的点:
+\begin{enumerate}
+    \item AOT(Ahead Of Time) or JIT(Just In Time)?
+\begin{lstlisting}
+-fsycl-targets=spir64_gen;
+\end{lstlisting}
+目前缺失\Xe3的支持
+\begin{lstlisting}
+-device pvc,bmg,bmg-g21-a0,bmg-g31-a0,须添加ptl
+\end{lstlisting}
+CMakeLists.txt
+\begin{lstlisting}
+line:53 option(VLLM_XPU_ENABLE_XE2 "Enable XE2 architecture kernels" ON) #须添加XE3支持
+line:182  set(XE2_AOT_DEVICES "pvc,bmg,bmg-g21-a0,bmg-g31-a0")# 须添加Xe3支持set(XE2_AOT_DEVICES "pvc,bmg,bmg-g21-a0,bmg-g31-a0,ptl")
+line:189  if(DEFINED ENV{VLLM_XPU_XE2_AOT_DEVICES}) #环境变量override
+line:287  DPCPP_SYCL_TARGET #target加上ptl
+line:346  #需要增加Xe3
+\end{lstlisting}
+关注Final SYCL compile options 和  Final SYCL link options
+
+\Xe-2实现的几个kernel
+\begin{longtable}{p{6cm}p{12cm}}
+\hline
+Kernels & path\\
+\hline
+    Grouped GEMM & \$\{ROOT\}/src/csrc/xpu/grouped\_gemm/xe\_2\\
+    MoE & \$\{ROOT\}/src/csrc/xpu/attn/xe\_2\\
+    FlashAttn&\$\{ROOT\}src/csrc/xpu/att/xe\_2\\
+    Gated Delta Net & \$\{ROOT\}/src/csrc/xpu/gdn/xe\_2\\
+    Multi Query Attention logit& \$\{ROOT\}/src/csrc/xpu/mqa\_logits/xe\_2\\
+\hline
+\end{longtable}
+需要在
+\begin{lstlisting}
+${ROOT}/csrc/xpu/attn/attn_interface.cpp中添加#ifdef VLLM_XPU_ENABLE_XE3
+${ROOT}/csrc/xpu/grouped_gemm/grouped_gemm_interface.cpp中添加#ifdef VLLM_XPU_ENABLE_XE3
+${ROOT}/csrc/xpu/gdn_attn/gdn_attn_interface.cpp中添加#ifdef VLLM_XPU_ENABLE_XE3
+\end{lstlisting}
+
+\item \href{https://github.com/intel/sycl-tla}{SYCL-TLA}
+\end{enumerate}
+

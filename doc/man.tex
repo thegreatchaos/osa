@@ -1,0 +1,23 @@
+\documentclass[8pt]{article}
+\usepackage{xeCJK}
+\usepackage[top=1cm,bottom=1cm,left=1cm,right=1cm]{geometry}
+\usepackage[usenames,dvipsnames, table]{xcolor}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{ulem}
+\usepackage{graphicx}
+\usepackage[shortlabels]{enumitem}
+\usepackage{pdflscape}
+\usepackage{listings}
+\setCJKmainfont{WenQuanYi Micro Hei}
+\setmainfont{ProFontWindows}
+\setenumerate[1]{itemsep=0pt,partopsep=0pt,parsep=\parskip,topsep=1pt}
+\fontsize{8pt}{8pt}
+\rowcolors{1}{white}{gray!50}
+\newcommand{\Xe}{X$^e$}
+\begin{document}
+\section{vLLM XPU Kernels}
+    \input{vxk}
+\end{document}
