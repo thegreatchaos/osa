@@ -1,0 +1,17 @@
+%% file ov.tex
+%% author thegreatchaos@thegreatchaos.com
+%% date 2026/04/29 15:59:05
+\subsection{OneDNN}
+OneDNN是高性能的深度学习算子(primitive)库, 为上层框架提供统一的DNN primitives, 优化, 调度, JIT等能力。
+
+目前支持的primitives定义在src/common下, 该目录下的一个算子命名规则:
+\begin{enumerate}
+    \item primitiveName\_pd.hpp. pd: primitive descriptor, 用来描述算子怎么跑: 算子的配置/能力判断/实现的选择等, 
+	  \begin{enumerate}
+	    \item 继承关系. 命名规则struct primitiveName\_desc\_t: public primitive\_desc\_t(基类).
+	    \item 算子描述. 成员函数const primitiveName\_desc\_t* desc()是由op\_desc\_t继承而来的(同时定义在src/common/opdesc.hpp)
+	    \item 定义shape/memory接口. const memory\_desc\_t* src\_md(); const memory\_desc\_t* dst\_md();
+	    \item 功能描述. eg. bool is\_fwd();//是否支持fwd
+	  \end{enumerate}
+    \item primitiveName.cpp. 定义类一些函数这些函数在include/oneapi/dnnl/dnnl.h中申明, 这些函数主要用来创建descriptor
+\end{enumerate}
