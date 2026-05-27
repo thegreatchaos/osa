@@ -7,18 +7,28 @@
 bash build.sh &> /tmp/cmake.log #详细分析, cflags, lflags
 make VERBOSE=1 &> /tmp/make.log #build过程详细分析
 \end{lstlisting}
-
-需要注意的点:
+需要配置的环境变量: 参照\$\{ROOT\}/src/tools/envs.py
+注意目前\nameref{impl_kerns}实现的kernels中Grouped GEMM/MoE/FlashAttn都是以\href{https://github.com/intel/sycl-tla}{SYCL-TLA}方式实现. 必须将BUILD\_SYCL\_TLA\_KERNELS=ON.
+\subsection{build分析}
 \begin{enumerate}
-    \item AOT(Ahead Of Time) or JIT(Just In Time)?
+    \item AOT实现\Xe-2(*.cmake负责展开AOT代码, *.cpp.in是模板实现)
+    \begin{enumerate}
+	\item paged\_decode
+    \begin{lstlisting}
+    csrc/xpu/attn/xe_2/paged_decode_configure.cmake
+    csrc/xpu/attn/xe_2/paged_decode_kernel_template.cpp.in
+    \end{lstlisting}
+	\item chunk\_prefill
+    \begin{lstlisting}
+    csrc/xpu/attn/xe_2/chunk_prefill_configure.cmake
+    csrc/xpu/attn/xe_2/chunk_prefill_kernel_template.cpp.in
+    \end{lstlisting}
+\end{enumerate}
+CMakeLists.txt中
 \begin{lstlisting}
 -fsycl-targets=spir64_gen;
-\end{lstlisting}
-目前缺失\Xe3的支持
-\begin{lstlisting}
 -device pvc,bmg,bmg-g21-a0,bmg-g31-a0,须添加ptl
 \end{lstlisting}
-CMakeLists.txt
 \begin{lstlisting}
 line:53 option(VLLM_XPU_ENABLE_XE2 "Enable XE2 architecture kernels" ON) #须添加XE3支持
 line:182  set(XE2_AOT_DEVICES "pvc,bmg,bmg-g21-a0,bmg-g31-a0")# 须添加Xe3支持set(XE2_AOT_DEVICES "pvc,bmg,bmg-g21-a0,bmg-g31-a0,ptl")
@@ -39,14 +49,7 @@ Kernels & path\\
     Gated Delta Net & \$\{ROOT\}/src/csrc/xpu/gdn/xe\_2\\
     Multi Query Attention logit& \$\{ROOT\}/src/csrc/xpu/mqa\_logits/xe\_2\\
 \hline
+    \caption{Kernels}{\label{impl_kerns}}
 \end{longtable}
-需要在
-\begin{lstlisting}
-${ROOT}/csrc/xpu/attn/attn_interface.cpp中添加#ifdef VLLM_XPU_ENABLE_XE3
-${ROOT}/csrc/xpu/grouped_gemm/grouped_gemm_interface.cpp中添加#ifdef VLLM_XPU_ENABLE_XE3
-${ROOT}/csrc/xpu/gdn_attn/gdn_attn_interface.cpp中添加#ifdef VLLM_XPU_ENABLE_XE3
-\end{lstlisting}
-
-\item \href{https://github.com/intel/sycl-tla}{SYCL-TLA}
 \end{enumerate}
 

@@ -5,7 +5,7 @@
 \usepackage{multirow}
 \usepackage{multicol}
 \usepackage{longtable}
-\usepackage{hyperref}
+\usepackage[colorlinks=false]{hyperref}
 \usepackage{ulem}
 \usepackage{graphicx}
 \usepackage[shortlabels]{enumitem}
@@ -15,8 +15,42 @@
 \setmainfont{ProFontWindows}
 \setenumerate[1]{itemsep=0pt,partopsep=0pt,parsep=\parskip,topsep=1pt}
 \fontsize{8pt}{8pt}
+\definecolor{lgtgray}{RGB}{200, 200, 200}
+\definecolor{orange}{RGB}{255, 141, 0}
+\definecolor{navy}{RGB}{0,141,241}
+\definecolor{skyblue}{RGB}{173, 215, 210}
+\definecolor{darkblue}{RGB}{89, 96, 163}
 \rowcolors{1}{white}{gray!50}
 \newcommand{\Xe}{X$^e$}
+\renewcommand{\tablename}{表}
+\hypersetup{
+  colorlinks,
+  citecolor=blue,
+  filecolor=blue,
+  linkcolor=blue,
+  urlcolor=blue
+}
+\lstset{
+         basicstyle=\footnotesize, % 代码风格
+         numbers=left,               % Ort der Zeilennummern
+         numberstyle=\tiny\color{navy}\scriptsize,          %行号风格
+         %stepnumber=2,               % Abstand zwischen den Zeilennummern
+         numbersep=5pt,              % Abstand der Nummern zum Text
+         tabsize=8,                  % Groesse von Tabs
+         extendedchars=true,         %
+         breaklines=true,            % Zeilen werden Umgebrochen
+         keywordstyle=\color{navy}\textbf,
+    	 frame=false,
+         stringstyle=\color{navy}\ttfamily, % Farbe der String
+         showspaces=false,           % Leerzeichen anzeigen ?
+         showtabs=false,             % Tabs anzeigen ?
+         xleftmargin=17pt,
+         %framexleftmargin=17pt,
+         %framexrightmargin=5pt,
+         %framexbottommargin=4pt,
+         backgroundcolor=\color{lgtgray},%代码背景色
+         showstringspaces=false      % Leerzeichen in Strings anzeigen ?        
+}
 \begin{document}
 \section{vLLM XPU Kernels}
     \input{vxk}
