@@ -1,6 +1,7 @@
 source env.sh
 set -x
 cd ${ROOT}/app.src;
+VLLM_LOGGING_LEVEL=DEBUG \
 VLLM_TARGET_DEVICE=xpu \
 VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 VLLM_WORKER_MULTIPROC_METHOD=spawn  \
     python3 -m vllm.entrypoints.openai.api_server \
@@ -12,4 +13,4 @@ VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 VLLM_WORKER_MULTIPROC_METHOD=spawn  \
     --max-num-batched-tokens=8192 \
     --max-model-len=10240 \
     --block-size 64 \
-    --quantization fp8
+    --quantization fp8  | tee /tmp/gemma4.log
