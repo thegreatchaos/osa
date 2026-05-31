@@ -42,7 +42,7 @@ app(){
     cd ${ROOT}/app.src
     pip install -r requirements/xpu.txt
     VLLM_TARGET_DEVICE=xpu pip install --no-build-isolation -e . -v
-    #pip install triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
+    pip install triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
 }
 
 

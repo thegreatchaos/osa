@@ -1,10 +1,10 @@
 source env.sh
 set -x
 cd ${ROOT}/app.src;
-VLLM_LOGGING_LEVEL=DEBUG \
-VLLM_TARGET_DEVICE=xpu \
-VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 VLLM_WORKER_MULTIPROC_METHOD=spawn  \
-    python3 -m vllm.entrypoints.openai.api_server \
+
+export VLLM_ALLOW_LONG_MAX_MODEL_LEN=1 
+export VLLM_WORKER_MULTIPROC_METHOD=spawn  
+python3 -m vllm.entrypoints.openai.api_server \
     --model /home/chaos/prjs/models/gemma4e4b \
     --enforce-eager --port 8000 --host 0.0.0.0  \
     --trust-remote-code  \
