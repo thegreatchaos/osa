@@ -1,4 +1,4 @@
-export ROOT="$(cd $(dirname "$1") && pwd)"
+export ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 set -x
 gs(){ #get source
     cd ${ROOT}
@@ -18,13 +18,9 @@ pei(){ #python env init
     fi;
     source env.sh
 }
-xpuDeps(){
-    pip install -r ${ROOT}/src/requirements.txt
-}
-
 ## for xpu kernels
 kerns(){
-    xpuDeps;
+    pip install -r ${ROOT}/src/requirements.txt
     export VLLM_TARGET_DEVICE="xpu"
     export CMAKE_BUILD_TYPE="Release" #在ptl 64GB + 即便128GB swap上也无法build debug信息的
     export BUILD_SYCL_TLA_KERNELS="ON"
@@ -41,13 +37,14 @@ kerns(){
 app(){
     cd ${ROOT}/app.src
     pip install -r requirements/xpu.txt
-    VLLM_TARGET_DEVICE=xpu pip install --no-build-isolation -e . -v
     pip install triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/xpu #or else torch::nms* does not exist
+    VLLM_TARGET_DEVICE=xpu pip install --no-build-isolation -e . -v
 }
 
 
 
-gs;
+#gs;
 pei;
-app;
+#app;
 kerns;
