@@ -4,7 +4,7 @@
 
 |目录|解释|
 |:----|:----|
-|vllm-xpu-kernels|xpu kernel enable/optimization for vllm|
+|vllm|xpu kernel enable/optimization for vllm|
 |oneDNN|1 lib for all DNN|
 
 目录结构

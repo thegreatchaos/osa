@@ -1,15 +1,15 @@
 #OFLG=-O3
 OFLG=-O0 -g
 
-CFLG=${OFLG} -Isrc #-std=c++11
+CFLG=${OFLG} -I${ROOT}/cmSDK/include -Isrc -march=PTL
 
 bin/bench:bin/bench.cpp.o bin/gemm.cpp.cm
 	mkdir -p bin
-	g++ $^ -o $@
+	cmc $^ -o $@
 
 bin/bench.cpp.o:src/bench.cpp
 	mkdir -p bin
-	g++ ${CFLG} -c $^ -o $@
+	cmc ${CFLG} -c $^ -o $@
 bin/gemm.cpp.cm:src/gemm.cpp.o
 	mkdir -p bin
 	cmc -march=ptl ${CFLG} $^ -o $@
