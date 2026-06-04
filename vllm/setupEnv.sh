@@ -70,8 +70,8 @@ doBuild(){
 
 	#问题与解决办法:
 	#1.  module 'triton' has no attribute 'next_power_of_2'
-	pip uninstall triton -y
-	pip install --force-reinstall triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
+	#pip uninstall triton -y
+	#pip install --force-reinstall triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
 	#2. subprocess.CalledProcessError: Command '['/opt/intel/oneapi/compiler/2025.3/bin/icpx', '/tmp/tmpckbr17d1/main.cpp', '-O3', '-shared', '-Wno-psabi', '-fPIC', '-lsycl', '-lze_loader', '-L/opt/intel/oneapi/compiler/2025.3/lib', '-L/home/chaos/prjs/osa/vllm/.env/lib/python3.12/site-packages/triton/backends/intel/lib', '-I/usr/local/include', '-I/opt/intel/oneapi/compiler/2025.3/include', '-I/opt/intel/oneapi/compiler/2025.3/include/sycl', '-I/home/chaos/prjs/osa/vllm/.env/lib/python3.12/site-packages/triton/backends/intel/include', '-I/tmp/tmpckbr17d1', '-I/usr/include/python3.12', '-o', '/tmp/tmpckbr17d1/spirv_utils.cpython-312-x86_64-linux-gnu.so', '-Wl,-rpath,/opt/intel/oneapi/compiler/2025.3/lib', '-fsycl']' returned non-zero exit status 1.
 	#   -> 'Python.h' not found. root cause
 	#sudo apt-get install -y --no-install-recommends python3.12-dev
@@ -91,5 +91,5 @@ doBuild(){
 oneapis;
 pvi;
 gsp;
-#doBuild "app";
+doBuild "app";
 doBuild "kerns"
