@@ -1,9 +1,6 @@
 [submodule "oneDNN/src"]
 	path = oneDNN/src
 	url = https://github.com/thegreatchaos/oneDNN.git
-[submodule "vllm/kerns"]
-	path = vllm/kerns
-	url = https://github.com/thegreatchaos/vllm-xpu-kernels.git
 [submodule "vllm/app"]
 	path = vllm/app
 	url = https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu
