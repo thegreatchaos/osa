@@ -4,3 +4,6 @@
 [submodule "vllm/app"]
 	path = vllm/app
 	url = https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu
+[submodule "vllm/kerns"]
+	path = vllm/kerns
+	url = https://github.com/thegreatchaos/vllm-xpu-kernels.git
