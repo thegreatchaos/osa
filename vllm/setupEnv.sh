@@ -92,4 +92,4 @@ oneapis;
 pvi;
 gsp;
 doBuild "app";
-doBuild "kerns"
+#####doBuild "kerns" #20260605: 此后, 使用xpu-kernels的二进制文件来做baseline, 用SYCL来卡法customized ops for vLLM 
