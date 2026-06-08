@@ -6,40 +6,97 @@ from time import sleep
 from ittapi import collection_control as cc
 import ittapi.compat  as itt
 import time
-# Sample prompts.
-prompts = [
-    "Hello, my name is",
-    "The president of the United States is",
-    "The capital of France is",
-    "The future of AI is",
-]
-MML=1024 # max model len
-GMU=0.6  # gpu memory utilization
-MNBT=256 # max number batched tokens
-LOOPS=20
-prompts = """Mr. and Mrs. Dursley, of number four, Privet Drive, were proud to say that they were perfectly normal, thank you very much. They were the last people you'd expect to be involved in anything strange or mysterious, because they just didn't hold with such nonsense. Mr. Dursley was the director of a firm called Grunnings, which made drills. He was a big, beefy man with hardly any neck, although he did have a very large mustache. Mrs. Dursley was thin and blonde and had nearly twice the usual amount of neck, which came in very useful as she spent so much of her time craning over garden fences, spying on the neighbors. The Dursleys had a small son called Dudley and in their opinion there was no finer boy anywhere. The Dursleys had everything they wanted, but they also had a secret, and their greatest fear was that somebody would discover it. They didn't think they could bear it if anyone found out about the Potters. Mrs. Potter was Mrs. Dursley's sister, but they hadn't met for several years; in fact, Mrs. Dursley pretended she didn't have a sister, because her sister and her good-for-nothing husband were as unDursleyish as it was possible to be. The Dursleys shuddered to think what the neighbors would say if the Potters arrived in the street. The Dursleys knew that the Potters had a small son, too, but they had never even seen him. This boy was another good reason for keeping the Potters away; they didn't want Dudley mixing with a child like that.When Mr. and Mrs. Dursley woke up on the dull, gray Tuesday our story starts, there was nothing about the cloudy sky outside to suggest that strange and mysterious things would soon be happening all over the country. Mr. Dursley hummed as he picked out his most boring tie for work, and Mrs. Dursley gossiped away happily as she wrestled a screaming Dudley into his high chair. None of them noticed a large, tawny owl flutter past the window. At half past eight, Mr. Dursley picked up his briefcase, pecked Mrs. Dursley on the cheek, and tried to kiss Dudley good-bye but missed, because Dudley was now having a tantrum and throwing his cereal at the walls. “Little tyke,” chortled Mr. Dursley as he left the house. He got into his car and backed out of number four's drive. It was on the corner of the street that he noticed the first sign of something peculiar — a cat reading a map. For a second, Mr. Dursley didn't realize what he had seen — then he jerked his head around to look again. There was a tabby cat standing on the corner of Privet Drive, but there wasn't a map in sight. What could he have been thinking of? It must have been a trick of the light. Mr. Dursley blinked and stared at the cat. It stared back. As Mr. Dursley drove around the corner and up the road, he watched the cat in his mirror. It was now reading the sign that said Privet Drive — no, looking at the sign; cats couldn't read maps or signs. Mr. Dursley gave himself a little shake and put the cat out of his mind. As he drove toward town he thought of nothing except a large order of drills he was hoping to get that day. But on the edge of town, drills were driven out of his mind by something else. As he sat in the usual morning traffic jam, he couldn't help noticing that there seemed to be a lot of strangely dressed people about. People in cloaks. Mr. Dursley couldn't bear people who dressed in funny clothes — the getups you saw on young people! He supposed this was some stupid new fashion. He drummed his fingers on the steering wheel and his eyes fell on a huddle of these weirdos standing quite close by. They were whispering excitedly together. Mr. Dursley was enraged to see that a couple of them weren't young at all; why, that man had to be older than he was, and wearing an emerald-green cloak! The nerve of him! But then it struck Mr. Dursley that this was probably some silly stunt — these people were obviously collecting for something... yes, that would be it. The traffic moved on and a few minutes later, Mr. Dursley arrived in the Grunnings parking lot, his mind back on drills. Mr. Dursley always sat with his back to the window in his office on the ninth floor. If he hadn't, he might have found it harder to concentrate on drills that morning."""
+INPUT_LENS=[10_000, 20_000, 30_000, 40_000, 50_000, 60_000, 70_000]#, 80_000],,, 80K 会OOM
+MAX_OUTPUT=128
+MML=max(INPUT_LENS) + MAX_OUTPUT + 64 # max model len
+GMU=0.9  # gpu memory utilization
+MNBT=max(INPUT_LENS) + MAX_OUTPUT + 64 # max number batched tokens
+LOOPS=5
+prompts = "The Zen of Python, by Tim Peters Beautiful is better than ugly.  Explicit is better than implicit.  Simple is better than complex.  Complex is better than complicated.  Flat is better than nested.  Sparse is better than dense.  Readability counts.  Special cases aren't special enough to break the rules.  Although practicality beats purity.  Errors should never pass silently.  Unless explicitly silenced.  In the face of ambiguity, refuse the temptation to guess.  There should be one-- and preferably only one --obvious way to do it.  Although that way may not be obvious at first unless you're Dutch.  Now is better than never.  Although never is often better than *right* now.  If the implementation is hard to explain, it's a bad idea.  If the implementation is easy to explain, it may be a good idea.  Namespaces are one honking great idea -- let's do more of those!"
+
+sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=MAX_OUTPUT)
 
 
-# Create a sampling params object.
-sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=128)
+def build_prompt_token_ids(tokenizer, target_len):
+    base_ids = tokenizer.encode(prompts, add_special_tokens=False)
+    if not base_ids:
+        raise RuntimeError("Tokenizer returned empty ids for base prompt")
+    repeats = (target_len + len(base_ids) - 1) // len(base_ids)
+    ids = (base_ids * repeats)[:target_len]
+    return ids
+
+
+def _request_stats(req_output):
+    """Return (ttft, decode_time, n_out_tokens) for one RequestOutput.
+
+    Note: in vLLM v1, `arrival_time` is wall-clock while `first_token_ts` /
+    `last_token_ts` are monotonic — they cannot be subtracted directly.
+    Use `first_token_latency` (engine-computed TTFT) and the same-clock
+    `last_token_ts - first_token_ts` for decode time.
+    """
+    m = req_output.metrics
+    n_out = len(req_output.outputs[0].token_ids)
+    first_t = getattr(m, "first_token_ts", None) or getattr(m, "first_token_time", None)
+    last_t  = getattr(m, "last_token_ts",  None) or getattr(m, "finished_time",   None)
+    ttft = getattr(m, "first_token_latency", None)
+    if ttft is None:
+        arrival = getattr(m, "arrival_time", None)
+        ttft = first_t - arrival
+    decode_time = last_t - first_t
+    return ttft, decode_time, n_out
 
 
 def main():
-    # Create an LLM.
     print("\033[41mStart Inference collection\033[0m")
     cc.resume();
 
     inst = itt.domain_create("inst.vLLM.Qwen3.6-35B-A3B");
     itt.task_begin(inst, "Initialization")
-    llm = LLM(model="/home/chaos/prjs/models/Qwen3.6-35B-A3B",revision=None, gpu_memory_utilization=GMU,enforce_eager=True,max_model_len=MML, quantization="fp8", block_size=64, max_num_batched_tokens=MNBT, max_num_seqs=1)
+    llm = LLM(model="/home/chaos/prjs/models/Qwen3.6-35B-A3B",revision=None, gpu_memory_utilization=GMU,enforce_eager=True,max_model_len=MML, quantization="fp8", block_size=64, max_num_batched_tokens=MNBT, max_num_seqs=1, disable_log_stats=False, enable_prefix_caching=False)
     itt.task_end(inst)
 
     infer = itt.domain_create("infer.vLLM.Qwen3.6-35B-A3B")
-    itt.task_begin(infer, "Infer");
-    outputs = llm.generate(prompts, sampling_params)
-    for i in range(LOOPS):
-        llm.generate(prompts, sampling_params)
-    itt.task_end(infer)
+    tokenizer = llm.get_tokenizer()
+
+    def _avg(xs): return sum(xs) / len(xs) if xs else float("nan")
+
+    summary = []
+    for in_len in INPUT_LENS:
+        token_ids = build_prompt_token_ids(tokenizer, in_len)
+        actual_in_len = len(token_ids)
+        print(f"\033[36m--- Input length target={in_len}, actual={actual_in_len} ---\033[0m")
+
+        llm.generate({"prompt_token_ids": token_ids}, sampling_params)
+
+        itt.task_begin(infer, f"Infer-{in_len}")
+        ttfts, tpots, ntoks = [], [], []
+        loop_t0 = time.perf_counter()
+        for _ in range(LOOPS):
+            outs = llm.generate({"prompt_token_ids": token_ids}, sampling_params)
+            for o in outs:
+                ttft, decode_time, n = _request_stats(o)
+                ttfts.append(ttft)
+                ntoks.append(n)
+                if n > 1:
+                    tpots.append(decode_time / (n - 1))
+        total_wall = time.perf_counter() - loop_t0
+        itt.task_end(infer)
+
+        tps = sum(ntoks) / total_wall
+        ttft_avg = _avg(ttfts) * 1000
+        tpot_avg = _avg(tpots) * 1000
+        print(f"\033[32m[in={actual_in_len}] TTFT avg={ttft_avg:.2f}ms  "
+              f"min={min(ttfts)*1000:.2f}ms  max={max(ttfts)*1000:.2f}ms\033[0m")
+        print(f"\033[32m[in={actual_in_len}] TPOT avg={tpot_avg:.2f}ms  "
+              f"min={min(tpots)*1000:.2f}ms  max={max(tpots)*1000:.2f}ms\033[0m")
+        print(f"\033[32m[in={actual_in_len}] TPS  {tps:.2f} tok/s  "
+              f"({sum(ntoks)} tokens / {total_wall:.2f}s, {LOOPS} requests)\033[0m")
+        summary.append((actual_in_len, ttft_avg, tpot_avg, tps))
+
+    print("\n\033[33m=== Summary ===\033[0m")
+    print(f"\033[33m{'InputLen':>10} {'TTFT(ms)':>12} {'TPOT(ms)':>12} {'TPS(tok/s)':>12}\033[0m")
+    for in_len, ttft_avg, tpot_avg, tps in summary:
+        print(f"\033[33m{in_len:>10} {ttft_avg:>12.2f} {tpot_avg:>12.2f} {tps:>12.2f}\033[0m")
     cc.pause()
     print("\033[41mStopped Inference collection\033[0m")
     cc.detach()
