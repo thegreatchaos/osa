@@ -4,5 +4,5 @@ source /opt/intel/oneapi/vtune/vtune-vars.sh --force
 source ${ROOT}/.env/bin/activate
 export VLLM_TARGET_DEVICE=xpu
 export VLLM_XPU_ENABLE_XPU_GRAPH=1
-export VLLM_WORKER_MULTIPROC_METHOD=spawn
+#export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export PS1='\033[32mvlm>\033[0m'

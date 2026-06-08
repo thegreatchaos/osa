@@ -23,7 +23,7 @@ gemma4(){
 qwen36(){
     common;
     export VLLM_XPU_ENABLE_XPU_GRAPH=1
-    #vtune -r /tmp/qwen36a3b_gpu_${TS} -data-limit=0 -collect gpu-hotspots -start-paused -- python qwen36-35b-a3b.py
+    vtune -r /tmp/qwen36a3b_gpu_${TS} -data-limit=0 -collect gpu-hotspots -start-paused -- python qwen36-35b-a3b.py
     vtune -r /tmp/qwen36a3b_uarch_${TS} -data-limit=0 -collect uarch-exploration -start-paused -- python qwen36-35b-a3b.py #for exploding the deadlocks
 }
 
