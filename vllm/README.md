@@ -11,7 +11,9 @@ bash setupEnv.sh 2>&1 | tee /tmp/setEnv.log # for setting up the envs on a bare 
 source env.sh #to init envs
 sgmc.sh #用来压制vllm跑起来抱怨gpu memory不足的的问题. 可以在开始LLM.generate时候ctrl-c掉
 ```
-- Further optimization
+- Profiling / Run
 ```
-bash perf.sh #for profiling with vtune
+perf.sh #To run / profiling. bash perf.sh后不加参数来跑, 加任意参数来vtune抓数据
 ```
+
+
