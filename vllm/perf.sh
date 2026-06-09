@@ -1,7 +1,10 @@
 source env.sh
 set -x
 cd ${ROOT};
-
+isPerf=0;
+if [ $# -ne 0 ]; then
+    isPerf=1
+fi
 TS=`date +%Y%m%d%H%M%S`
 
 common(){
@@ -14,21 +17,16 @@ common(){
     sudo echo "1" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
 }
 
-gemma4(){
-    common;
-    export VLLM_XPU_ENABLE_XPU_GRAPH=1
-    vtune -r /tmp/gemma4_${TS} -data-limit=0 -collect gpu-hotspots -start-paused -- python gemma4.py
-}
-
 qwen36(){
-    common;
-    export VLLM_XPU_ENABLE_XPU_GRAPH=1
-    vtune -r /tmp/qwen36a3b_gpu_${TS} -data-limit=0 -collect gpu-hotspots -start-paused -- python qwen36-35b-a3b.py
-    vtune -r /tmp/qwen36a3b_uarch_${TS} -data-limit=0 -collect uarch-exploration -start-paused -- python qwen36-35b-a3b.py #for exploding the deadlocks
+    if [ ${isPerf} -eq 0 ]; then
+	echo -e "\033[31mRun without perf\033[0m"
+	sudo sh -c "syc && echo 3 | tee /proc/sys/vm/drop_caches" && python qwen36-35b-a3b.py
+    else
+	echo -e "\033[31mStart profiing\033[0m"
+	common;
+	export VLLM_XPU_ENABLE_XPU_GRAPH=1
+	vtune -r /tmp/qwen36a3b_gpu_${TS} -data-limit=0 -collect gpu-hotspots -start-paused -- python qwen36-35b-a3b.py
+	vtune -r /tmp/qwen36a3b_uarch_${TS} -data-limit=0 -collect uarch-exploration -start-paused -- python qwen36-35b-a3b.py #for exploding the deadlocks
+    fi
 }
-
-
-
-
-#gemma4;
 qwen36;
