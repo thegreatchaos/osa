@@ -83,7 +83,9 @@ doBuild(){
     if [ "$1" = "kerns" ]; then
 	cd ${KROOT};
 	cmit=$(git rev-parse HEAD)
-	if [ "4ef4beccfecab445fd95ff6e479628c8e9ffa1c1" != $cmit ]; then
+	v170Commits="4ef4beccfecab445fd95ff6e479628c8e9ffa1c1"
+	v191Commits="98fc9b0f864f6554ca939425d95089532f501a01"
+	if [ ${v191Commits} != $cmit ]; then
 	    die "NOT evaluated"
 	fi
 	pip install --no-build-isolation -e . -v
