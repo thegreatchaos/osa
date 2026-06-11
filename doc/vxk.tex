@@ -2,12 +2,8 @@
 %% author thegreatchaos@thegreatchaos.com
 %% date 2026/05/25 15:22:12
 \subsection{build流程}
-参照vllm-xpu-kernels/build.sh. 
-\begin{lstlisting}
-bash build.sh &> /tmp/cmake.log #详细分析, cflags, lflags
-make VERBOSE=1 &> /tmp/make.log #build过程详细分析
-\end{lstlisting}
-需要配置的环境变量: 参照\$\{ROOT\}/src/tools/envs.py
+使用OSA/setupEnv.sh来Build. 
+
 注意目前\nameref{impl_kerns}实现的kernels中Grouped GEMM/MoE/FlashAttn都是以\href{https://github.com/intel/sycl-tla}{SYCL-TLA}方式实现. 必须将BUILD\_SYCL\_TLA\_KERNELS=ON.
 \subsection{build分析}
 \begin{enumerate}
@@ -43,13 +39,15 @@ line:346  #需要增加Xe3
 \hline
 Kernels & path\\
 \hline
-    Grouped GEMM & \$\{ROOT\}/src/csrc/xpu/grouped\_gemm/xe\_2\\
-    MoE & \$\{ROOT\}/src/csrc/xpu/attn/xe\_2\\
-    FlashAttn&\$\{ROOT\}src/csrc/xpu/att/xe\_2\\
-    Gated Delta Net & \$\{ROOT\}/src/csrc/xpu/gdn/xe\_2\\
-    Multi Query Attention logit& \$\{ROOT\}/src/csrc/xpu/mqa\_logits/xe\_2\\
+    Grouped GEMM & csrc/xpu/grouped\_gemm/xe\_2\\
+    MoE & csrc/xpu/attn/xe\_2\\
+    FlashAttn&csrc/xpu/att/xe\_2\\
+    Gated Delta Net & csrc/xpu/gdn/xe\_2\\
+    Multi Query Attention logit& csrc/xpu/mqa\_logits/xe\_2\\
 \hline
     \caption{Kernels}{\label{impl_kerns}}
 \end{longtable}
 \end{enumerate}
 
+\subsection{分析与实现}
+    \input{attn}

@@ -1,0 +1,27 @@
+%% file attn.tex
+%% author thegreatchaos@thegreatchaos.com
+%% date 2026/06/11 16:09:33
+\subsubsection{代码结构分析}
+\begin{enumerate}
+    \item build/CMakeLists.txt. 忽略, 把代码嵌入进去或者让ai来做
+    \item FMHA
+\begin{lstlisting}
+cd src
+grep -irl fmha 得到以下
+flash_attn/flash_api.cpp  // mha_varlen_fwd
+xpu/attn/xe_2/chunk_prefill_configure.cmake //中定义了fmha_forward_configure函数, 会被xpu/attn/xe_2/CMakeLists.txt:5调用来依据chunk_prefill_kernel生成不同配置的.cpp
+xpu/attn/xe_2/chunk_prefill_utils.hpp //用来dispatch不同的配置的Kernel
+xpu/attn/xe_2/paged_decode_xe2.cpp //cutlass_paged_decode_xe2的实现
+xpu/attn/xe_2/fmha_xe2.cpp //cutlass_chunk_prefill_xe2的实现
+xpu/attn/xe_2/kernel/chunk_prefill_kernel.hpp //FMHAProblemShape, XeFMHAFwdKern两class/struct的定义
+xpu/attn/xe_2/kernel/paged_decode_kernel.hpp //DecodeProblemShape, XeFMHAFwdSplitKVKernel, ReduceSplitK class/struct的定义
+xpu/attn/xe_2/collective/chunk_prefill_epilogue.hpp //FMHAFwdEpilogue, DecodeFwdEpilogue class定义
+xpu/attn/xe_2/collective/chunk_prefill_mainloop.hpp //FMHAFwdMainLoop, DecodeFwdMainLoop class定义
+xpu/attn/xe_2/collective/chunk_prefill_scheduler.hpp //XeFHMAIndividualTileScheduler, DecodeTileScheduler, XeReduceSplitKTileScheduler class定义
+xpu/attn/xe_2/paged_decode.hpp//多种decode policy, {DecodeKernelLauncher, PageDecodeConfig}结构体定义, decode_policy_dispatch_impl的实现
+xpu/attn/xe_2/chunk_prefill.hpp //KernelLauncher, FMHAConfig结构体定义, policy_dispatch_impl的实现
+xpu/attn/xe_2/paged_decode_utils.hpp //utils: decode_policy_dispatch_func, dispatch_by_{head_size, page_size}, cutlass_paged_decode_impl
+xpu/attn/xe_2/CMakeLists.txt
+xpu/attn/attn_interface.cpp //cutlass_{chunk_prefill, paged_decode}_interface的实现
+\end{lstlisting}
+\end{enumerate}
