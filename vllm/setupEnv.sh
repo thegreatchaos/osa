@@ -94,8 +94,8 @@ doBuild(){
     #Step 2, build the kerns source.
 }
 
-#oneapis;
+oneapis;
 pvi;
-#gsp;
+gsp;
 doBuild "app";
 doBuild "kerns" #20260605: 此后, 使用xpu-kernels的二进制文件来做baseline(v0.1.7 with 聪哥的patch), 用SYCL来卡法customized ops for vLLM 
