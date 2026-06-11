@@ -83,9 +83,9 @@ doBuild(){
     if [ "$1" = "kerns" ]; then
 	cd ${KROOT};
 	cmit=$(git rev-parse HEAD)
-	v170Commits="4ef4beccfecab445fd95ff6e479628c8e9ffa1c1"
+	v170Commits="42285b6ec2b90bf87a2f5c021b8d405e8a1ca9b3"
 	v191Commits="98fc9b0f864f6554ca939425d95089532f501a01"
-	if [ ${v191Commits} != $cmit ]; then
+	if [ ${v170Commits} != $cmit ]; then
 	    die "NOT evaluated"
 	fi
 	pip install --no-build-isolation -e . -v
@@ -94,8 +94,8 @@ doBuild(){
     #Step 2, build the kerns source.
 }
 
-oneapis;
+#oneapis;
 pvi;
-gsp;
+#gsp;
 doBuild "app";
 doBuild "kerns" #20260605: 此后, 使用xpu-kernels的二进制文件来做baseline(v0.1.7 with 聪哥的patch), 用SYCL来卡法customized ops for vLLM 

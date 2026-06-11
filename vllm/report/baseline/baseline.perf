@@ -1,0 +1,93 @@
+ 
+:: initializing oneAPI environment ...
+   perf.sh: BASH_VERSION = 5.2.21(1)-release
+   args: Using "$@" for setvars.sh arguments: --force
+:: ccl -- latest
+:: compiler -- latest
+:: debugger -- latest
+:: dev-utilities -- latest
+:: dnnl -- latest
+:: dpl -- latest
+:: mkl -- latest
+:: mpi -- latest
+:: pti -- latest
+:: tbb -- latest
+:: umf -- latest
+:: oneAPI environment initialized ::
+ 
++ cd /home/chaos/prjs/osa/vllm
++ isPerf=0
++ '[' 0 -ne 0 ']'
+++ date +%Y%m%d%H%M%S
++ TS=20260611143307
++ qwen36
++ '[' 0 -eq 0 ']'
++ echo -e '\033[31mRun without perf\033[0m'
+[31mRun without perf[0m
++ sudo sh -c 'sync && echo 3 | tee /proc/sys/vm/drop_caches'
+3
++ python qwen36-35b-a3b.py
+2026:06:11-14:33:32:122383 |CCL_WARN| value of CCL_LOG_LEVEL changed to be error (default:warn)
+(EngineCore pid=122383) Loading safetensors checkpoint shards:   0% Completed | 0/26 [00:00<?, ?it/s]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:   4% Completed | 1/26 [00:03<01:34,  3.77s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:   8% Completed | 2/26 [00:05<01:01,  2.55s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  12% Completed | 3/26 [00:08<01:00,  2.64s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  15% Completed | 4/26 [00:10<00:58,  2.65s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  19% Completed | 5/26 [00:13<00:55,  2.66s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  23% Completed | 6/26 [00:16<00:53,  2.68s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  27% Completed | 7/26 [00:17<00:42,  2.24s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  31% Completed | 8/26 [00:19<00:35,  1.98s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  35% Completed | 9/26 [00:21<00:36,  2.15s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  38% Completed | 10/26 [00:22<00:30,  1.93s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  42% Completed | 11/26 [00:25<00:31,  2.10s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  46% Completed | 12/26 [00:26<00:26,  1.89s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  50% Completed | 13/26 [00:29<00:28,  2.16s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  54% Completed | 14/26 [00:31<00:23,  1.94s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  58% Completed | 15/26 [00:33<00:23,  2.11s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  62% Completed | 16/26 [00:36<00:23,  2.35s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  65% Completed | 17/26 [00:37<00:18,  2.03s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  69% Completed | 18/26 [00:39<00:14,  1.85s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  73% Completed | 19/26 [00:41<00:14,  2.06s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  77% Completed | 20/26 [00:43<00:11,  1.86s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  81% Completed | 21/26 [00:45<00:10,  2.07s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  85% Completed | 22/26 [00:48<00:09,  2.26s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  88% Completed | 23/26 [00:51<00:07,  2.40s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  92% Completed | 24/26 [00:53<00:04,  2.47s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards:  96% Completed | 25/26 [00:55<00:02,  2.15s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards: 100% Completed | 26/26 [00:57<00:00,  2.33s/it]
+(EngineCore pid=122383) Loading safetensors checkpoint shards: 100% Completed | 26/26 [00:57<00:00,  2.23s/it]
+(EngineCore pid=122383) 
+[36mInput length=10000[0m
+[41mStart Inference collection[0m
+[32m	[in=10000] TTFT avg=3352.79ms  min=3265.39ms  max=3406.36ms[0m
+[32m	[in=10000] TPOT avg=54.13ms  min=53.42ms  max=54.55ms[0m
+[32m	[in=10000] TPS  14.93 tok/s  (2565 tokens / 171.83s, 5 requests)[0m
+[36mInput length=20000[0m
+[41mStart Inference collection[0m
+[32m	[in=20000] TTFT avg=7002.23ms  min=6878.88ms  max=7140.40ms[0m
+[32m	[in=20000] TPOT avg=53.89ms  min=53.33ms  max=54.44ms[0m
+[32m	[in=20000] TPS  12.35 tok/s  (2565 tokens / 207.71s, 5 requests)[0m
+[36mInput length=40000[0m
+[41mStart Inference collection[0m
+[32m	[in=40000] TTFT avg=15309.72ms  min=15241.10ms  max=15428.28ms[0m
+[32m	[in=40000] TPOT avg=53.94ms  min=53.63ms  max=54.70ms[0m
+[32m	[in=40000] TPS  8.82 tok/s  (2565 tokens / 290.92s, 5 requests)[0m
+[36mInput length=60000[0m
+[41mStart Inference collection[0m
+[32m	[in=60000] TTFT avg=25490.74ms  min=25277.64ms  max=25634.84ms[0m
+[32m	[in=60000] TPOT avg=54.13ms  min=53.83ms  max=54.66ms[0m
+[32m	[in=60000] TPS  6.52 tok/s  (2565 tokens / 393.22s, 5 requests)[0m
+[36mInput length=70000[0m
+[41mStart Inference collection[0m
+[32m	[in=70000] TTFT avg=31263.61ms  min=31041.70ms  max=31430.12ms[0m
+[32m	[in=70000] TPOT avg=54.50ms  min=53.94ms  max=55.24ms[0m
+[32m	[in=70000] TPS  5.68 tok/s  (2565 tokens / 451.88s, 5 requests)[0m
+
+[33mSummary::[0m
+[33m	  InputLen     TTFT(ms)     TPOT(ms)   TPS(tok/s)[0m
+[33m	     10000      3352.79        54.13        14.93[0m
+[33m	     20000      7002.23        53.89        12.35[0m
+[33m	     40000     15309.72        53.94         8.82[0m
+[33m	     60000     25490.74        54.13         6.52[0m
+[33m	     70000     31263.61        54.50         5.68[0m
+[41mStopped Inference collection[0m

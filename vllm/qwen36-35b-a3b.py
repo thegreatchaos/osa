@@ -15,13 +15,13 @@ from ittapi import collection_control as cc
 import ittapi.compat  as itt
 import time
 import random
-#INPUT_LENS=[10_000, 20_000, 40_000, 60_000, 70_000]#, 80_000],,, 80K 会OOM
+INPUT_LENS=[10_000, 20_000, 40_000, 60_000, 70_000]#, 80_000],,, 80K 会OOM
 #INPUT_LENS=[4000, 40000]
-INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
-MAX_OUTPUT=64
+#INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
+MAX_OUTPUT=512
 MML=INPUT_LENS[-1] + MAX_OUTPUT# max model len, 须满足MML > inputTokenLen + outputTokenLen
 GMU=0.8  # gpu memory utilization
-MNBT=64# max number batched tokens, 
+MNBT=8192# max number batched tokens, 
 LOOPS=5
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=MAX_OUTPUT)
 ttft_params     = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=1)
