@@ -38,9 +38,18 @@ flash_attn_varlen_func(){ //vllm_xpu_kernels/flash_attn_interface.py
 		cutlass_chunk_prefill_interface(){ //csrc/xpu/attn/attn_interface.cpp
 		    cutlass_chunk_prefill_xe2(){ //csrc/xpu/attn/xe_2/fmha_xe2.cpp
 			cutlass_chunk_prefill_impl(){ //同上文件
-			    //按照head_size dispatch 到不同的policy 模板特化 chunk_policy_head{64,96,128,192,256,512}[_b16]
-			    //模板定义在 csrc/xpu/attn/xe_2/fmha_utils.hpp中struct chunk_policy_head{64..512}_b16
-			    //实例化在 csrc/xpu/attn/xe_2/chunk_prefill_extern.hpp. 将不同配置的policy实例化成extern template vod policy_dispatch_impl<...>(sycl::queue&, CutlassQKType& const chunk_prefill_args_t&);
+			    policy_dispatch_func<chunk_policy>(){ // csrc/xpu/attn/xe_2/chunk_prefill_utils.hpp
+				policy_dispatch_impl<>(){ //csrc/xpu/attn/xe_2/chunk_prefill.hpp
+				    return FMHAConfig<不同配置的chunk_policy>::kernel_dispatch(){ //文件同上
+					return  FMHAConfig::run(){//文件同上
+					    KernelLauncher<FMHAKernel, VarLen> launcher;
+					    launcher.run(queue, args, hw_info){//文件同上
+						compat::experimental::launch<cutlass::device_kernel<FMHAKernel>>//cutlass
+					    }
+					}
+				    }
+				}
+			    }
 			}
 		    }
 		}
@@ -52,7 +61,7 @@ flash_attn_varlen_func(){ //vllm_xpu_kernels/flash_attn_interface.py
 			    dispatch_by_page_size<QGroup>(){ //QGroup=8,16, csrc/xpu/attn/xe_2/paged_decode_utils.hpp
 				dispatch_by_head_size<QGroup, PageSize>(){//文件同上, PageSize=16,32,64
 				    decode_plociy_dispatch_func<>(){//文件同上
-					decode_policy_dispatch_impl<>(){//csrc/xpu/attn/xe_2/paged_decode.hpp
+					decode_policy_dispatch_impl<>(){//csrc/xpu/attn/xe_2/paged_decode.hpp. 该模板函数会结合page_decode_configure.cmake + paged_decode_kernel_template.cpp.in做AOT
 					    return PageDecodeConfig<不同配置policy>::kernel_dispatch(){ //文件同上
 						PageDecodeConfig::run(){//文件同上
 						    DecodeKernelLauncher<FMHAKernel, ReduceSplitKernel, VarLen> launcher;
@@ -75,4 +84,18 @@ flash_attn_varlen_func(){ //vllm_xpu_kernels/flash_attn_interface.py
     ...
 }
 \end{lstlisting}
+目前通过AOT生成的chunk\_prefill及paged\_decode kernel有632个
+\begin{lstlisting}
+chaos@ptldev:~/prjs/osa/vllm/kerns/build/temp/csrc/xpu/attn/xe_2$ ls *.cpp | wc -l
+632
+chaos@ptldev:~/prjs/osa/vllm/kerns/build/temp/csrc/xpu/attn/xe_2$ ls chunk* | wc -l
+216
+chaos@ptldev:~/prjs/osa/vllm/kerns/build/temp/csrc/xpu/attn/xe_2$ ls page* | wc -l
+416
+\end{lstlisting}
+\colorbox{yellow}{从SYCL-TLA上去enable xe3}
+\begin{enumerate}
+    \item 612个kernel手工实现工作量大
+    \item xpu-kernels是sycl-tla based. 插入手工代码upstream成功可能存疑.
+\end{enumerate}
 \end{enumerate}
