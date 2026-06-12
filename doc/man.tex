@@ -51,9 +51,12 @@
          backgroundcolor=\color{lgtgray},%代码背景色
          showstringspaces=false      % Leerzeichen in Strings anzeigen ?        
 }
+\newcommand{\todo}[1]{\colorbox{black}{\color{red}TODO:\color{white}#1}}
 \begin{document}
 \section{vLLM XPU Kernels}
     \input{vxk}
+\section{SYCL-TLA}
+    \input{tla}
 \section{OneDNN}
     \input{1dnn}
 \end{document}

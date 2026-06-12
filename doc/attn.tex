@@ -93,9 +93,18 @@ chaos@ptldev:~/prjs/osa/vllm/kerns/build/temp/csrc/xpu/attn/xe_2$ ls chunk* | wc
 chaos@ptldev:~/prjs/osa/vllm/kerns/build/temp/csrc/xpu/attn/xe_2$ ls page* | wc -l
 416
 \end{lstlisting}
-\colorbox{yellow}{从SYCL-TLA上去enable xe3}
+问题:
 \begin{enumerate}
     \item 612个kernel手工实现工作量大
     \item xpu-kernels是sycl-tla based. 插入手工代码upstream成功可能存疑.
 \end{enumerate}
+同样Grouped GEMM, GDN也是通过SYCL-TLA(部分使用SYCL), 
+
+方向:从SYCL-TLA上去enable xe3 + xpu-kernels中SYCL有gap部分enable xe3
+\end{enumerate}
+
+\todo{分析}
+\begin{enumerate}
+    \item Rampup SYCL-TLA to check the gap for \Xe-3, reason: attn算子是完全SYCL-TLA.
+    \item 对于GrouppedGEMM, GDN, check the gap both\{xpu-kernels, SYCL-TLA\} for gaps for \Xe-3.
 \end{enumerate}
