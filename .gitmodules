@@ -7,3 +7,6 @@
 [submodule "vllm/kerns"]
 	path = vllm/kerns
 	url = https://github.com/thegreatchaos/vllm-xpu-kernels.git
+[submodule "sycl-tla/src"]
+	path = sycl-tla/src
+	url = https://github.com/thegreatchaos/sycl-tla

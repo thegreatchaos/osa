@@ -24,4 +24,55 @@ xpu/attn/xe_2/paged_decode_utils.hpp //utils: decode_policy_dispatch_func, dispa
 xpu/attn/xe_2/CMakeLists.txt
 xpu/attn/attn_interface.cpp //cutlass_{chunk_prefill, paged_decode}_interface的实现
 \end{lstlisting}
+    \item 调用链路
+\begin{lstlisting}
+flash_attn_varlen_func(){ //vllm_xpu_kernels/flash_attn_interface.py
+    ...
+    out, softmax_lse = torch.ops._vllm_fa2_C.varlen_fwd(){ //vllm_xpu_kernels/flash_attn_interface.py
+	//从此开始C/C++
+	mha_varlen_fwd(){ //csrc/flash_attn/flash_api.cpp, 文件尾部注册算子mha_varlen_fwd
+	    //q_type check,目前只支持BF16&Half 
+	    bool is_paged = block_table_.has_value();o
+	    bool is_varlen = true;//后续全部按照varlen处理
+	    if (max_seqlen_q > 1 || !is_paged) {//prefill分支
+		cutlass_chunk_prefill_interface(){ //csrc/xpu/attn/attn_interface.cpp
+		    cutlass_chunk_prefill_xe2(){ //csrc/xpu/attn/xe_2/fmha_xe2.cpp
+			cutlass_chunk_prefill_impl(){ //同上文件
+			    //按照head_size dispatch 到不同的policy 模板特化 chunk_policy_head{64,96,128,192,256,512}[_b16]
+			    //模板定义在 csrc/xpu/attn/xe_2/fmha_utils.hpp中struct chunk_policy_head{64..512}_b16
+			    //实例化在 csrc/xpu/attn/xe_2/chunk_prefill_extern.hpp. 将不同配置的policy实例化成extern template vod policy_dispatch_impl<...>(sycl::queue&, CutlassQKType& const chunk_prefill_args_t&);
+			}
+		    }
+		}
+	    }else{//decode分支,  paged + 单token
+		get_num_splits(); //计算kv split数
+		cutlass_paged_decode_interface(){//csrc/xpu/attn/attn_interface.cpp
+		    cutlass_paged_decode_xe2{// csrc/xpu/attn/xe_2/paged_decode_xe2.cpp
+			cutlass_paged_decode_impl(){ //同上文件
+			    dispatch_by_page_size<QGroup>(){ //QGroup=8,16, csrc/xpu/attn/xe_2/paged_decode_utils.hpp
+				dispatch_by_head_size<QGroup, PageSize>(){//文件同上, PageSize=16,32,64
+				    decode_plociy_dispatch_func<>(){//文件同上
+					decode_policy_dispatch_impl<>(){//csrc/xpu/attn/xe_2/paged_decode.hpp
+					    return PageDecodeConfig<不同配置policy>::kernel_dispatch(){ //文件同上
+						PageDecodeConfig::run(){//文件同上
+						    DecodeKernelLauncher<FMHAKernel, ReduceSplitKernel, VarLen> launcher;
+						    launcher.run(queue, args, hw_info){
+							//cutlass
+							compat::experimental::laucnh<...>()
+						    }
+						}
+					    }
+					}
+				    }
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
+    ...
+}
+\end{lstlisting}
 \end{enumerate}
