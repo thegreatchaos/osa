@@ -221,10 +221,9 @@ int main(int argc, const char** argv)
   constexpr int PipelineStages = 2;
   using GEMMDispatchPolicy = cutlass::gemm::MainloopXeL1Staged<PipelineStages>;
   using EpilogueDispatchPolicy = cutlass::epilogue::IntelXeGeneric;
-  using EpilogueOp = cutlass::epilogue::fusion::LinearCombination<ElementOutput, ElementComputeEpilogue,
-          ElementAccumulator, ElementAccumulator, cutlass::FloatRoundStyle::round_to_nearest>;
-  using FusionCallbacks = cutlass::epilogue::fusion::FusionCallbacks<EpilogueDispatchPolicy, EpilogueOp, TileShape,
-          decltype(tile_shape(TiledMma()))>;
+  using EpilogueOp = cutlass::epilogue::fusion::LinearCombination<ElementOutput, ElementComputeEpilogue, ElementAccumulator, ElementAccumulator, cutlass::FloatRoundStyle::round_to_nearest>;
+  using FusionCallbacks = cutlass::epilogue::fusion::FusionCallbacks<EpilogueDispatchPolicy, EpilogueOp, TileShape, decltype(tile_shape(TiledMma()))>;
+
   using CollectiveEpilogue = cutlass::epilogue::collective::CollectiveEpilogue<
           EpilogueDispatchPolicy,
           TileShape,
@@ -236,6 +235,7 @@ int main(int argc, const char** argv)
           FusionCallbacks,
           void,                                   // The copy atom used to load matrix C  (void = automatic)
           void>;                                  // The copy atom used to store matrix D (void = automatic)
+
   using CollectiveMainloop = cutlass::gemm::collective::CollectiveMma<
           GEMMDispatchPolicy,
           TileShape,
@@ -247,6 +247,7 @@ int main(int argc, const char** argv)
           GmemTiledCopyA, void, void, cute::identity,  // A
           GmemTiledCopyB, void, void, cute::identity   // B
   >;
+
   using GemmKernel = cutlass::gemm::kernel::GemmUniversal<
           Shape<int, int, int, int>, // Defer global problem shape definition to runtime
           CollectiveMainloop,

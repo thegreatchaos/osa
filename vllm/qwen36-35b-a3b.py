@@ -80,9 +80,10 @@ def main():
         total_wall = time.perf_counter() - loop_t0
         itt.task_end(infer)
         # +LOOPS: each loop also generates 1 token via ttft_params; count it to match total_wall.
-        tps = (sum(ntoks) + LOOPS) / total_wall
+        #tps = 1. / tpot(sum(ntoks) + LOOPS) / total_wall
         ttft_avg = _avg(ttfts) * 1000
         tpot_avg = _avg(tpots) * 1000
+        tps = 1000.0 / tpot_avg
         print(f"\033[32m\t[in={in_len}] TTFT avg={ttft_avg:.2f}ms  "
               f"min={min(ttfts)*1000:.2f}ms  max={max(ttfts)*1000:.2f}ms\033[0m")
         if tpots:
