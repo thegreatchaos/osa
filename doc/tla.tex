@@ -6,3 +6,14 @@ Forked from NV's cutlass. 专注于Linear Algebra.
 Cutlass 3.x 使用AOT方式. 4.x支持JIT方式同时支持py
 
 cutlass 3.x 核心是CuTe, 用来描述和操作data和thread的tensors, 提供layout表示及在这些layout上的LA ops
+
+
+\begin{enumerate}
+    \item Shape
+\begin{lstlisting}[language=cpp]
+struct GemmShape{
+    int kM, kN, kK;
+};
+*Shape;// alias of GemmShape
+\end{lstlisting}
+\end{enumerate}
