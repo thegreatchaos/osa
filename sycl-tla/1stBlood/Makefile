@@ -28,12 +28,12 @@ LFLG=${INTEL_LFLG}
 
 bin/test:bin/test.cpp.o
 	mkdir -p bin;
-	icpx -v $^ -o $@ ${LFLG}
+	icpx $^ -o $@ ${LFLG}
 
 bin/test.cpp.o:src/test.cpp
 	mkdir -p bin;
-	#icpx -v -c ${CFLG} $^ -o $@
-	icpx -Xclang -ast-print -fsyntax-only ${CFLG} $^ > ~/tmp/instancilized_cpp/inst.cpp ##将模板实例化生成的代码约237MB, 编译器崩了, 可能有些截断. 以此来分析
+	icpx -c ${CFLG} $^ -o $@
+	#icpx -Xclang -ast-print -fsyntax-only ${CFLG} $^ > ~/tmp/instancilized_cpp/inst.cpp ##将模板实例化生成的代码约237MB, 编译器崩了, 可能有些截断. 以此来分析
 clean:
 	-rm -rf bin
 run:bin/test

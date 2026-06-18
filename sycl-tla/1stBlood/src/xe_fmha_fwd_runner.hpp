@@ -53,6 +53,22 @@
 
 using namespace cute;
 
+#include <execinfo.h>
+
+#define TAG(x) fprintf(stdout, "%s. %s:%d\n", x, __FILE__, __LINE__)
+
+#define PrintCS(lineno) \
+    do{\
+	void* array[40]; \
+	size_t sz = backtrace(array, 40); \
+	char** strs = backtrace_symbols(array, sz); \
+	fprintf(stdout, "Callstack for %s@%d:\n", __func__, lineno); \
+	for(size_t i = 0; i < sz; ++i){ \
+	    printf("\t%s\n", strs[i]); \
+	}\
+	free(strs);\
+    }while(0)
+#define PCS PrintCS(__LINE__)
 // Command line options parsing
 struct Options {
 
@@ -727,6 +743,7 @@ template <class FMHAKernel, bool isVarLen = false> struct ExampleRunner {
 
   cutlass::Status run(const Options &options, const cutlass::KernelHardwareInfo &hw_info) {
 
+      PCS;
     ProblemShapeType shape = initialize(options);
 
     typename FMHAKernel::Arguments arguments{
@@ -768,6 +785,7 @@ template <class FMHAKernel, bool isVarLen = false> struct ExampleRunner {
 
     // Run the GEMM
     // Warmup runs
+    TAG("WARMUP");
     for (int i = 0; i < options.warmup; ++i) {
       run(params);
     }
@@ -786,6 +804,7 @@ template <class FMHAKernel, bool isVarLen = false> struct ExampleRunner {
     }
     if (options.iterations > 0) {
       GPU_Clock timer;
+      TAG("BENCH");
       timer.start();
       for (int i = 0; i < options.iterations; ++i) {
         run(params);
@@ -903,6 +922,7 @@ struct FMHAConfig {
     cutlass::KernelHardwareInfo hw_info;
     hw_info.sm_count = cutlass::KernelHardwareInfo::query_device_multiprocessor_count(hw_info.device_id);
 
+    PCS;
     using ProblemShapeType = cutlass::fmha::kernel::FMHAProblemShape<isVarLen>;
 
     using TiledMMAQK = typename TiledMMAHelper<MMA_Atom<MMAOperation>, Layout<TileShapeQK>, SubgroupLayoutQK>::TiledMMA;
@@ -917,7 +937,7 @@ struct FMHAConfig {
                          make_layout(repeat<rank_v<decltype(stride)>>(1), stride));
     };
 
-    using TensorQ = decltype(make_dummy_tensor(ElementQ{}, StrideQ{}));
+    using TensorQ = decltype(make_dummy_tensor(ElementQ{}, StrideQ{})); //decltype相当于gcc中的typeof()
     using TensorK = decltype(make_dummy_tensor(ElementK{}, StrideK{}));
     using TensorV = decltype(make_dummy_tensor(ElementV{}, StrideV{}));
     using TensorO = decltype(make_dummy_tensor(ElementO{}, StrideO{}));

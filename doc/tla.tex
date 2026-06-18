@@ -8,12 +8,36 @@ Cutlass 3.x 使用AOT方式. 4.x支持JIT方式同时支持py
 cutlass 3.x 核心是CuTe, 用来描述和操作data和thread的tensors, 提供layout表示及在这些layout上的LA ops
 
 
+数据结构(编译期用)
 \begin{enumerate}
-    \item Shape
-\begin{lstlisting}[language=cpp]
+    \item Shape. 做为模板参数在编译期指定, 用于决定流水线的并行度及访存模式
+\begin{lstlisting}
 struct GemmShape{
     int kM, kN, kK;
 };
 *Shape;// alias of GemmShape
+ThreadblockShape
+WarpShape
+InstructionShape
 \end{lstlisting}
+    \item Matrix/Tensor
+\begin{lstlisting}
+MaxtrixCood //矩阵索引
+TensorRef/TensorView // Tensor轻量描述符
+Layout //cutlass::layout::RowMajor/ColumnMajor/...
+Fragment //寄存器级
+\end{lstlisting}
+    \item 存储
+	\begin{enumerate}
+	    \item global mem. 
+	    \item SLM, eg, cutlass::AlignedArray, SharedStorage
+	    \item Fragment.
+	\end{enumerate}
+    \item For mainloop
+	\begin{enumerate}
+	    \item MMA. 矩阵乘累加核心, 封装1/多条PTX指令
+	    \item Iterator. 负责将global mem/SLM搬运到寄存器或者将结果从寄存器写回
+	    \item Epilogue. 对MMA结果的后处理, 并写到全局内存
+	\end{enumerate}
 \end{enumerate}
+\todo{搞清楚如何利用各个数据结构实现mainloop}
