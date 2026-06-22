@@ -710,8 +710,7 @@ template <class FMHAKernel, bool isVarLen = false> struct ExampleRunner {
 
   // Note that the GemmUniversalAdapter currently doesn't support flash attention, which is why this
   // secondary `run` function is required to launch the kernel.
-  static void run(typename FMHAKernel::Params params)
-  {
+  static void run(typename FMHAKernel::Params params) {
     namespace syclex = sycl::ext::oneapi::experimental;
     namespace intelex = sycl::ext::intel::experimental;
 
@@ -980,7 +979,11 @@ struct FMHAConfig {
   }
 
   static int run(const Options &options) {
+      PCS;
     bool cached_kv = options.seq_len_kv_cache > 0;
+    fprintf(stdout, "\033[31mCached KV: %s\033[0m\n", cached_kv ? "True" : "False");
+    fprintf(stdout, "\033[31mUse Paged KV: %s\033[0m\n", options.use_paged_kv ? "True" : "False");
+    fprintf(stdout, "\033[31mVarlen: %s\033[0m\n", options.varlen ? "True" : "False");
     if constexpr (persistent) {
       if (options.use_paged_kv || options.seq_len_kv_cache > 0) {
         std::cerr << "Error: Persistent kernel does not support paged/cached KV cache (use_paged_kv or seq_len_kv_cache > 0)." << std::endl;

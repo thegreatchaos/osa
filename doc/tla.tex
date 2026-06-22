@@ -41,3 +41,24 @@ Fragment //寄存器级
 	\end{enumerate}
 \end{enumerate}
 \todo{搞清楚如何利用各个数据结构实现mainloop}
+
+
+\begin{lstlisting}[language=c]
+FMHAConfig<Templates...>::run(options){ //这个对应的是xe_fmha_fwd_runner.hpp static int run(const Options& options)这个函数
+    template<bool isVarLen, bool CachedKV, bool PagedKV, class Scheduler> static in run(const Options& options){
+	hw_info.sm_count = ..//获取EU个数
+	...
+	ExampleRunner<FMHAKernel, isVarLen> runner; 
+	runner.run(options, hw_info){ //xe_fmha_fwd_runner.hpp: cutlass::Status run(const Options&, const cutlass::KernelHardwareInfo&)
+	    ...
+	    run(params){//文件同上， static void run(typename FMHAKernel::Params)
+		compat::experimental::launch<cutlass::device_kernel<FMHAKernel>, FMHAKernel, false>(...){ //include/cute/util/compat/launch.hpp
+		    ...
+		    KernelFunctor = build_kernel_functor<..>(..); //
+		    sycl_exp::nd_launch<N>(que, config, KernelFunctor);
+		}
+	    }
+	}
+    }
+}
+\end{lstlisting}
