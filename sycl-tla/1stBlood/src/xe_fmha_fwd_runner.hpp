@@ -69,6 +69,8 @@ using namespace cute;
 	free(strs);\
     }while(0)
 #define PCS PrintCS(__LINE__)
+
+#define PCS 
 // Command line options parsing
 struct Options {
 

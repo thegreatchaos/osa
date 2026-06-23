@@ -2,20 +2,20 @@
 %% author thegreatchaos@thegreatchaos.com
 %% date 2026/06/12 14:24:11
 
+FMHA计算内容
+\begin{eqnarray}
+    S &=& Q \cdot K^T\\
+    P &=& softmax(S * scale) \\
+    O &=& P \cdot V
+\end{eqnarray}
+
 \todo{以FMHA为入口搞清楚以下}:
 \begin{enumerate}
     \item 使用SYCL-TLA实现的算子跑起来的整个过程. 如何跑起来?(数据如何切分/合并, 各个切片如何调度), 数据结构?
     \item 实现一个新算子要做哪些事情?
     \item 支持一个新硬件, 多卡如何实现?
 \end{enumerate}
-
-Forked from NV's cutlass. 专注于Linear Algebra.
-
-Cutlass 3.x 使用AOT方式. 4.x支持JIT方式同时支持py
-
-cutlass 3.x 核心是CuTe, 用来描述和操作data和thread的tensors, 提供layout表示及在这些layout上的LA ops
-
-
+\iffalse
 数据结构(编译期用)
 \begin{enumerate}
     \item Shape. 做为模板参数在编译期指定, 用于决定流水线的并行度及访存模式
@@ -48,15 +48,16 @@ Fragment //寄存器级
 	    \item Epilogue. 对MMA结果的后处理, 并写到全局内存
 	\end{enumerate}
 \end{enumerate}
+\fi
 
 \begin{longtable}{p{2cm}p{2cm}p{14cm}}
     \hline
     Intel & NV & Description\\
     \hline
-    Work item& thread\\
+    Work item& thread &\\
     Subgroup & Warp & subgroupsize=\{8,16,32\}, warp=32 threads\\
     Workgroup & Block & 会被调度到一个EU/\Xe core上\\
-    Global Size & Grid \\
+    Global Size & Grid &\\
     \hline
     \caption{Intel 与 NV对照}
 \end{longtable}
@@ -84,24 +85,25 @@ FMHAConfig<Templates...>::run(options){ //xe_fmha_fwd_runner.hpp:static int run(
 	FMHAKernel = XeFMHAFwdDynamicSplitKernel<...> or XeFMHAFwdKernel<...> //构建FMHAKernel
 	ExampleRunner<FMHAKernel, isVarLen> runner; 
 	runner.run(options, hw_info){ //xe_fmha_fwd_runner.hpp: cutlass::Status run(const Options&, const cutlass::KernelHardwareInfo&)
+	    initialize(options);//device上分配Q/K/V/O内存, 最终走到的是src/tools/util/include/cutlass/util/device_memory.h: compat::malloc();
 	    ...
 	    run(params){//文件同上， static void run(typename FMHAKernel::Params)
 		compat::experimental::launch<cutlass::device_kernel<FMHAKernel>, FMHAKernel, false>(...){ //include/cute/util/compat/launch.hpp
-		    ...
-		    KernelFunctor = build_kernel_functor<..>(..);
-		    /*src/include/cute/util/compat/launch_policy.hpp
-		     struct KernelFunctor::operator(){
-			 apply_helper(){
-			     apply_expand(){
-				 std::forward(...);///此处将FHMAKernel::operator() forward给KernelFunctor(C++引入的脱裤子放屁机制).
-			     }
-			 }
-		     }
-		    */
-		    sycl_exp::nd_launch<N>(que, config, KernelFunctor); //sycl kernels
-		}
+		    sycl::exp::submit(q, [&](sycl::handler&){
+			KernelFunctor = build_kernel_functor<..>(..);
+			/*src/include/cute/util/compat/launch_policy.hpp
+			 struct KernelFunctor::operator(); ////即以模板传入的cutlass::device_kernel<FMHAKernel>的FMHAKernel::operator();//
+			*/
+			sycl_exp::nd_launch<N>(que, config, KernelFunctor); //sycl kernels
+		    });
+		}/**注意这里的cutlass::device_kernel<FMHAKernel>以模板传入会在cutlass/device_kernel.h中调用FMHAKernel::operator()
 	    }
 	}
     }
 }
 \end{lstlisting}
+Conclusion:
+\begin{enumerate}
+    \item 对于FMHA算子重点看他的mainloop, epilogue
+    \item 如果要实现一个新算子
+\end{enumerate}
