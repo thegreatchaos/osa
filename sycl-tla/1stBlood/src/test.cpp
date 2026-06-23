@@ -105,15 +105,15 @@ int main(int argc, const char **argv) {
 #endif
 #if PERSISTENT
   return FMHAConfig<false/*isCausal*/, 
-		    ShapeQK/*TileShapeQK*/, 
-		    ShapePV/*TileShapePV*/, 
-		    ShapeOut/*TileShapeOutput*/, 
-		    SubgroupLayoutQK/*SgLayoutQK*/, 
+		    ShapeQK/*TileShapeQK*/,	    //<_1, _256, _64>
+		    ShapePV/*TileShapePV*/,	    //<_1, _32, _256>
+		    ShapeOut/*TileShapeOutput*/,    //<_1, _192>
+		    SubgroupLayoutQK/*SgLayoutQK*/, //<_1, _16/*subgroup size*/, _1>
 		    void,/*SgLayoutPV*/ 
-		    PipelineStages, 
+		    PipelineStages,		    //1
 		    true/*isPersistent*/, 
-		    ElementQ/*Datatype Q*/, 
-		    ElementK/*DataType K*/, 
+		    ElementQ/*Datatype Q*/,	    //bf16
+		    ElementK/*DataType K*/,	    //bf16
 		    ElementV/*DataType V*/>::run(options);
 #else
   return options.is_causal ? FMHAConfig<true, ShapeQK, ShapePV, ShapeOut, SubgroupLayoutQK, void, PipelineStages,  /*persistent=*/false, ElementQ, ElementK, ElementV>::run(options)

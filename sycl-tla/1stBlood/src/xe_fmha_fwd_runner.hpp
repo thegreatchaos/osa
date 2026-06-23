@@ -922,13 +922,12 @@ struct FMHAConfig {
     hw_info.sm_count = cutlass::KernelHardwareInfo::query_device_multiprocessor_count(hw_info.device_id);
 
     PCS;
-    using ProblemShapeType = cutlass::fmha::kernel::FMHAProblemShape<isVarLen>;
+    using ProblemShapeType = cutlass::fmha::kernel::FMHAProblemShape<isVarLen>;//如果isVarLen=True, ProblemShapeType为cutlass::fmha::collective::VariableLength类型(struct VariableLength), 否则为int类型
 
     using TiledMMAQK = typename TiledMMAHelper<MMA_Atom<MMAOperation>, Layout<TileShapeQK>, SubgroupLayoutQK>::TiledMMA;
     using TiledMMAPV = typename TiledMMAHelper<MMA_Atom<MMAOperation>, Layout<TileShapePV>, SubgroupLayoutPV>::TiledMMA;
 
-    static_assert(get<0>(TileShapeOutput{}) == get<0>(TileShapePV{}),
-        "Output tile and P*V tile have different sizes in Q dimension");
+    static_assert(get<0>(TileShapeOutput{}) == get<0>(TileShapePV{}), "Output tile and P*V tile have different sizes in Q dimension");
     constexpr int VTiles = get<1>(TileShapeOutput{}) / get<1>(TileShapePV{});
 
     auto make_dummy_tensor = [&](auto val, auto stride) {
@@ -965,11 +964,10 @@ struct FMHAConfig {
     >;
 
     static_assert(!(persistent & Causal), "persistent SDPA kernel not support Causal yet");
-    using FMHAKernel = conditional_t<is_same_v<Scheduler, cutlass::fmha::kernel::XeFHMAIndividualPersistentTileScheduler>,
-      cutlass::fmha::kernel::XeFMHAFwdDynamicSplitKernel<
-        ProblemShapeType, CollectiveMainloop, CollectiveEpilogue, Scheduler>,
-        cutlass::fmha::kernel::XeFMHAFwdKernel<
-        ProblemShapeType, CollectiveMainloop, CollectiveEpilogue, Scheduler>
+    using FMHAKernel = conditional_t<
+	is_same_v<Scheduler, cutlass::fmha::kernel::XeFHMAIndividualPersistentTileScheduler>,
+	cutlass::fmha::kernel::XeFMHAFwdDynamicSplitKernel<ProblemShapeType, CollectiveMainloop, CollectiveEpilogue, Scheduler>,
+        cutlass::fmha::kernel::XeFMHAFwdKernel< ProblemShapeType, CollectiveMainloop, CollectiveEpilogue, Scheduler>
         >;
 
     ExampleRunner<FMHAKernel, isVarLen> runner;

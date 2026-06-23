@@ -1,6 +1,14 @@
 %% file tla.tex
 %% author thegreatchaos@thegreatchaos.com
 %% date 2026/06/12 14:24:11
+
+\todo{以FMHA为入口搞清楚以下}:
+\begin{enumerate}
+    \item 使用SYCL-TLA实现的算子跑起来的整个过程. 如何跑起来?(数据如何切分/合并, 各个切片如何调度), 数据结构?
+    \item 实现一个新算子要做哪些事情?
+    \item 支持一个新硬件, 多卡如何实现?
+\end{enumerate}
+
 Forked from NV's cutlass. 专注于Linear Algebra.
 
 Cutlass 3.x 使用AOT方式. 4.x支持JIT方式同时支持py
@@ -40,22 +48,57 @@ Fragment //寄存器级
 	    \item Epilogue. 对MMA结果的后处理, 并写到全局内存
 	\end{enumerate}
 \end{enumerate}
-\todo{搞清楚如何利用各个数据结构实现mainloop}
 
+\begin{longtable}{p{2cm}p{2cm}p{14cm}}
+    \hline
+    Intel & NV & Description\\
+    \hline
+    Work item& thread\\
+    Subgroup & Warp & subgroupsize=\{8,16,32\}, warp=32 threads\\
+    Workgroup & Block & 会被调度到一个EU/\Xe core上\\
+    Global Size & Grid \\
+    \hline
+    \caption{Intel 与 NV对照}
+\end{longtable}
 
 \begin{lstlisting}[language=c]
-FMHAConfig<Templates...>::run(options){ //这个对应的是xe_fmha_fwd_runner.hpp static int run(const Options& options)这个函数
+FMHAConfig<Templates...>::run(options){ //xe_fmha_fwd_runner.hpp:static int run(const Options& options)
     template<bool isVarLen, bool CachedKV, bool PagedKV, class Scheduler> static in run(const Options& options){
 	hw_info.sm_count = ..//获取EU个数
-	...
+	
+	{//构建Mainloop, Epilogue
+	    mainloop = FMHAFwdMainLoop<...>;
+	    /* src/application/flash_attention_v2/collective/xe_fmha_fwd_mainloop.hpp
+	       to_underlying_arguments();
+	       can_implement();
+	       get_physical_k_tile();
+	       operator(); //tile加载, cute::gemm, softmax..
+	       softmax();
+	     */
+	    epilogue = FMHAFwdEpilogue<...>;
+	    /* src/applications/flash_attention_v2/collective/xe_fmha_fwd_epilogue.hpp
+	       operator();//reciprocal, reorder, copy
+	       reduce_A();//
+	    */
+	}
+	FMHAKernel = XeFMHAFwdDynamicSplitKernel<...> or XeFMHAFwdKernel<...> //构建FMHAKernel
 	ExampleRunner<FMHAKernel, isVarLen> runner; 
 	runner.run(options, hw_info){ //xe_fmha_fwd_runner.hpp: cutlass::Status run(const Options&, const cutlass::KernelHardwareInfo&)
 	    ...
 	    run(params){//文件同上， static void run(typename FMHAKernel::Params)
 		compat::experimental::launch<cutlass::device_kernel<FMHAKernel>, FMHAKernel, false>(...){ //include/cute/util/compat/launch.hpp
 		    ...
-		    KernelFunctor = build_kernel_functor<..>(..); //
-		    sycl_exp::nd_launch<N>(que, config, KernelFunctor);
+		    KernelFunctor = build_kernel_functor<..>(..);
+		    /*src/include/cute/util/compat/launch_policy.hpp
+		     struct KernelFunctor::operator(){
+			 apply_helper(){
+			     apply_expand(){
+				 std::forward(...);///此处将FHMAKernel::operator() forward给KernelFunctor(C++引入的脱裤子放屁机制).
+			     }
+			 }
+		     }
+		    */
+		    sycl_exp::nd_launch<N>(que, config, KernelFunctor); //sycl kernels
 		}
 	    }
 	}
