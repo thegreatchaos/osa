@@ -191,7 +191,8 @@ void operator()(Params const &params, char *smem_buf){//这个一个WI运行的�
 \begin{enumerate}
     \item mainloop
     \item epilogue
-    \item FMHA::operator()更上一层的WG, SG, WI的划分
+    \item FMHA::operator()更上一层的WG, SG, WI的划分.
+    \item 欲提TPS, 因decode是memory bound, 侧重看memory部分
 \end{enumerate}
 \begin{lstlisting}[language=c++, mathescape=true]
 //overview
