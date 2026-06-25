@@ -32,13 +32,13 @@ bin/test:bin/test.cpp.o
 
 bin/test.cpp.o:src/test.cpp
 	mkdir -p bin;
-	#icpx -c ${CFLG} $^ -o $@
-	icpx -E -P -Xclang -ast-print -fsyntax-only ${CFLG} $^ > ~/tmp/instancilized_cpp/inst.cpp ##将模板实例化生成的代码约237MB, 编译器崩了, 可能有些截断. 以此来分析
+	icpx -c ${CFLG} $^ -o $@
+	#icpx -E -P -Xclang -ast-print -fsyntax-only ${CFLG} $^ > ~/tmp/instancilized_cpp/inst.cpp ##将模板实例化生成的代码约237MB, 编译器崩了, 可能有些截断. 以此来分析
+	#icpx -E -P ${CFLG} $^ > ~/tmp/instancilized_cpp/expanded.cpp
 clean:
 	-rm -rf bin
 run:bin/test
-	./bin/test
-
+	./bin/test --iterations=800
 perf:bin/test
 	mkdir -p repo;
 	vtune -r repo/fmha_${TS} -data-limit=0 -collect gpu-hotspot ./bin/test --iterations=800

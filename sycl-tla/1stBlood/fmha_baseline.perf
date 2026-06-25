@@ -1,0 +1,10 @@
+./bin/test --iterations=800
+[31mCached KV: False[0m
+[31mUse Paged KV: False[0m
+[31mVarlen: False[0m
+WARMUP. src/xe_fmha_fwd_runner.hpp:789
+Disposition: Passed
+BENCH. src/xe_fmha_fwd_runner.hpp:808
+Batch: 32	NumHeads_q: 16	NumHeads_kv: 16	Seq Length QO: 1	Seq Length KV: 512	Head Size QK: 192	Head Size VO: 192	Causal Mask: false	Variable Sequence Length: false	 Scheduler: Individual
+Performance:   111.752  GB/s,    0.111  TFlop/s,   1.8068  ms
+

@@ -1,6 +1,14 @@
 %% file tla.tex
 %% author thegreatchaos@thegreatchaos.com
 %% date 2026/06/12 14:24:11
+\subsection{Math}
+FMHAKernel之前过程
+\begin{eqnarray}
+    Q &=& X_q \cdot W_Q \in R^{s_{qo} \times \left(h_q \times d_{qk}\right)}\nonumber\\
+    K &=& X_k \cdot W_K \in R^{s_{kv} \times \left(h_{kv} \times d_{qk}\right)}\nonumber\\
+    V &=& X_v \cdot W_V \in R^{s_{kv} \times \left(h_{kv} \times d_{vo}\right)}\nonumber
+\end{eqnarray}
+$X_{q, k, v} \in R^{n_{tok}\times l_{emb}}$, $n_{tok}$: token个数, $l_{emb}$为tokenizer生成的embedding向量长度, 这是第一个transformer block, $s_{qo} == s_{kv}$, 之后此关系不存在, 一般$s_{qo} \le s_{kv}$(KV会随着output tok增长)
 
 FMHA计算内容
 \begin{eqnarray}
@@ -9,6 +17,35 @@ FMHA计算内容
     O &=& P \cdot V
 \end{eqnarray}
 
+\begin{enumerate}
+    \item $Q_{s_{qo}\times d_{qk} \times h_q \times b}$.
+
+	$s_{qo}$: seq len of Qury/Output, 当前step要算的token数.
+
+	$d_{qk}$: 每个head内Q/K向量的维度
+
+	$h_q$: Q head number, 
+
+	$b$: batch
+
+	mem layout: $\left[b\right]\left[h_q\right]\left[s_{qo}\right]\left[d_{qk}\right]$
+    \item $K_{s_{kv}\times d_{qk}\times h_{kv}\times b}$
+
+	$s_{kv}$: seq len of Key/Value, 被attend的上下文长度
+
+	$h_{kv}$: KV head num
+	
+	mem layout: $\left[b\right]\left[h_{kv}\right]\left[s_{kv}\right]\left[d_{qk}\right]$
+    \item $V_{d_{vo}\times s_{kv}\times h_{kv}\times b}$
+
+	$d_{vo}$: vector len of within V/O heads
+
+	mem layout: $\left[b\right]\left[h_{kv}\right]\left[s_{kv}\right]\left[d_{qk}\right]$
+    \item $O_{s_{qo}\times d_{vo}\times h_q\times b}$
+	
+	mem layout: $\left[b\right]\left[h_{q}\right]\left[s_{qo}\right]\left[d_{vo}\right]$
+\end{enumerate}
+\subsection{分析与实现}
 \todo{以FMHA为入口搞清楚以下}:
 \begin{enumerate}
     \item 使用SYCL-TLA实现的算子跑起来的整个过程. 如何跑起来?(数据如何切分/合并, 各个切片如何调度), 数据结构?
@@ -94,16 +131,74 @@ FMHAConfig<Templates...>::run(options){ //xe_fmha_fwd_runner.hpp:static int run(
 			/*src/include/cute/util/compat/launch_policy.hpp
 			 struct KernelFunctor::operator(); ////即以模板传入的cutlass::device_kernel<FMHAKernel>的FMHAKernel::operator();//
 			*/
-			sycl_exp::nd_launch<N>(que, config, KernelFunctor); //sycl kernels
+			sycl_exp::nd_launch<N>(que, config, KernelFunctor); //TODO: 了解nd_launch与普通SYCL不同
 		    });
-		}/**注意这里的cutlass::device_kernel<FMHAKernel>以模板传入会在cutlass/device_kernel.h中调用FMHAKernel::operator()
+		}
 	    }
 	}
     }
 }
 \end{lstlisting}
-Conclusion:
+Conclusion: 对于FMHA算子重点看他的mainloop, epilogue, scheduler
+\begin{lstlisting}[language=c++]
+//src/applications/flash_attention_v2/collective/xe_fmha_mainloop.hpp, XeFMHAFwdKernel::opeator()
+void operator()(Params const &params, char *smem_buf){//这个一个WI运行的函数
+    SharedStorage& shared_storage = *reinterpret_cast<SharedStorage *>(smem_buf); //SharedStorage是个Unon先mainloop再epilogue时间不重叠使用同一块SLM
+    int head_group_q = s.num_heads_q / s.num_heads_kv; //GQA grp size, 如果是MHA head_group_q=1, else 多头共用kv
+    int thr_id = int(ThreadIdxX());
+    int q_sg_tile = get<0>(shape_div(TileShapeQK{}, shape(SubgroupLayoutQK{}))); //一个subgrp处理q的行数
+    ...
+    TileScheduler tile_scheduler{params.scheduler}; 
+    /*在src/applications/flash../kernel/xe_tile_scheduler.hpp中定义, 以template传入可能是..Individual..或..Persistent..两种
+      operator++();//将valid置为false, 下面的is_valid()的for循环只运行1次
+    */
+
+    CUTLASS_PRAGMA_NO_UNROLL
+    for (; tile_scheduler.is_valid(); ++tile_scheduler) {//只运行一次的循环
+      ...
+      if (CollectiveMainloop::CausalMask && seq_coord < discard_seq_coord) continue;
+      ...
+      Tensor Q = make_tensor(make_gmem_ptr(dcQ), make_layout(shape_Q, stride_q)); ///构建Tensor结构体(描述Tensor不涉及memcpy/move..)
+      Tensor K/V/K_cache/V_Cache/O..
+      // O accumulator types
+      FragA tArA;
+      FragARow tA_max, tA_sum;
+      // Main loop
+      int l_coord = is_var_len ? 0 : idx_b;
+      CollectiveMainloop mainloop(params.mainloop, shared_storage.mainloop);
+      mainloop(Q(_,_,head_q,l_coord),
+               K(_,_,head,l_coord),
+               V(_,_,head,l_coord),
+               tArA, tA_max, tA_sum,
+               blk_qv, 0, k_blocks, k_blocks,
+               thr_id, seq_len, seq_len_kv_cache, idx_b,
+               full_tile_offset, discard_seq_coord,
+               K_cache(_,_,head,l_coord),
+               V_cache(_,_,head,l_coord));
+
+      if constexpr (!is_empty_v<MainloopSharedStorage> && !is_empty_v<EpilogueSharedStorage>) {
+        sycl::group_barrier(get_work_group<3>()); //如果一个WI在上面continue了则可能会导致device端死锁
+      }
+      // Epilogue
+      CollectiveEpilogue epilogue{params.epilogue, shared_storage.epilogue};
+      epilogue(O(_,_,head_q,l_coord),
+               tArA, tA_max, tA_sum,
+               blk_qv, thr_id);
+    }
+}
+\end{lstlisting}
+\todo{分析}
 \begin{enumerate}
-    \item 对于FMHA算子重点看他的mainloop, epilogue
-    \item 如果要实现一个新算子
+    \item mainloop
+    \item epilogue
+    \item FMHA::operator()更上一层的WG, SG, WI的划分
 \end{enumerate}
+\begin{lstlisting}[language=c++, mathescape=true]
+//overview
+XeFMHAFwdKernel::operator(){
+    FMHAFwdMainloop::operator(){ //$S=Q\cdot K^T \rightarrow softmax \rightarrow P\cdot V$
+    }
+    FMHAFwdEpilogue::operator(){ //normalization, reorder, writeback
+    }
+}
+\end{lstlisting}
