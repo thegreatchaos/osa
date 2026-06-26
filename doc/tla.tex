@@ -2,6 +2,7 @@
 %% author thegreatchaos@thegreatchaos.com
 %% date 2026/06/12 14:24:11
 \subsection{Math}
+\iffalse
 FMHAKernel之前过程
 \begin{eqnarray}
     Q &=& X_q \cdot W_Q \in R^{s_{qo} \times \left(h_q \times d_{qk}\right)}\nonumber\\
@@ -9,7 +10,7 @@ FMHAKernel之前过程
     V &=& X_v \cdot W_V \in R^{s_{kv} \times \left(h_{kv} \times d_{vo}\right)}\nonumber
 \end{eqnarray}
 $X_{q, k, v} \in R^{n_{tok}\times l_{emb}}$, $n_{tok}$: token个数, $l_{emb}$为tokenizer生成的embedding向量长度, 这是第一个transformer block, $s_{qo} == s_{kv}$, 之后此关系不存在, 一般$s_{qo} \le s_{kv}$(KV会随着output tok增长)
-
+\fi
 FMHA计算内容
 \begin{eqnarray}
     S &=& Q \cdot K^T\\
@@ -28,22 +29,22 @@ FMHA计算内容
 
 	$b$: batch
 
-	mem layout: $\left[b\right]\left[h_q\right]\left[s_{qo}\right]\left[d_{qk}\right]$
+	mem layout: $\left[b\right]\left[h_q\right]\color{NavyBlue}{\left[s_{qo}\right]\left[d_{qk}\right]}$
     \item $K_{s_{kv}\times d_{qk}\times h_{kv}\times b}$
 
 	$s_{kv}$: seq len of Key/Value, 被attend的上下文长度
 
 	$h_{kv}$: KV head num
 	
-	mem layout: $\left[b\right]\left[h_{kv}\right]\left[s_{kv}\right]\left[d_{qk}\right]$
+	mem layout: $\left[b\right]\left[h_{kv}\right]\color{NavyBlue}{\left[s_{kv}\right]\left[d_{qk}\right]}$
     \item $V_{d_{vo}\times s_{kv}\times h_{kv}\times b}$
 
 	$d_{vo}$: vector len of within V/O heads
 
-	mem layout: $\left[b\right]\left[h_{kv}\right]\left[s_{kv}\right]\left[d_{qk}\right]$
+	mem layout: $\left[b\right]\left[h_{kv}\right]\color{NavyBlue}{\left[s_{kv}\right]\left[d_{vo}\right]}$
     \item $O_{s_{qo}\times d_{vo}\times h_q\times b}$
 	
-	mem layout: $\left[b\right]\left[h_{q}\right]\left[s_{qo}\right]\left[d_{vo}\right]$
+	mem layout: $\left[b\right]\left[h_{q}\right]\color{NavyBlue}{\left[s_{qo}\right]\left[d_{vo}\right]}$
 \end{enumerate}
 \subsection{分析与实现}
 \todo{以FMHA为入口搞清楚以下}:
@@ -202,4 +203,26 @@ XeFMHAFwdKernel::operator(){
     FMHAFwdEpilogue::operator(){ //normalization, reorder, writeback
     }
 }
+\end{lstlisting}
+任务划分
+\begin{lstlisting}[language=c++, mathescape=true, escapechar=\%]
+//1stBlood/src/xe_fmha_fwd_runner.hpp, static void run(..param..)中定义grid, block, sg有cute::intel::sg_size;////此处为16, TODO: 了解其机制
+/**
+    XeFMHAFwdKernel::Params{//src/application/flash../kernel/xe_fmha_fwd_kernel.hpp
+	XeFMHAFwdKernel::KernelArguments kernel; //定义ProblemShape, Q/K/V/O, K_cache/V_cache在device上的指针,stride
+	XeFMHAFwdKernel:MainloopParams mainloop; //定义scale, page_table的指针, page_size, 每个seq对应page个数的数组指针
+	XeFMHAFwdKernel:EpilogueParam epilogue;  //Placeholder, 实际结构体为空
+	XeFMHAFwdKernel:TileScheduler scheduler;
+    } //该结构提在1stBlood/src/xe_fmha_fwd_runner.hpp中的run()中初始化
+    其中
+    ProblemShape定义在src/application/flash../kernel/xe_fmha_fwd_kernel.hpp中定义的FMHAProblemShape;
+    struct FMHAProblemShape{
+	//定义了$b,  h_q, h_{kv}, s_{qo}, s_{kv}, s_{kvcache}, d_{qk}, d_{vo}$
+    };
+*/
+grid = FMHAKernel::get_grid_shape(..)//->Schedler::get_grid_shape(), 在Scduler::to_underlying_params中构造了grid
+%\color{NavyBlue}{grid}% = $\left(\lceil\frac{d_{vo}}{tile_1}\rceil, \lceil\frac{s_{qo}}{tile_0}\rceil, b \times h_q\right)$//最终以sycl::nd_range<3>(grid.x, grid.y, grid.z)的方式来指定global size. 其中tile是在1stBlood/src/test.cpp中ShapeQK/PV/Out..=<_256, _64_, ..>来定义每个WG处理的tile大小
+//根据指定的SubgroupLayoutQK来计算SGPerWG, 然后WG=SGPerWG * intel::sg_size
+SGPerWG= //1st./src/test.cpp SubgroupLayoutQK=Layout<Shape<_32,_1,_1>>来指定在M,N,K方向上的重复次数, 
+block = FMHAKernel::get_block_shape();//这两个函数经由FMHAKernel最终到Scheduler::get_*_shape():
 \end{lstlisting}
