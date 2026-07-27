@@ -282,7 +282,7 @@ template <typename QVCoord>
 	for(...){
 	    copy(...);//将Q, K从mem加载到reg
 	    reorder();
-	    cute::gemm(Q, K, S); // $S = Q\times K^T$
+	    cute::gemm(Q, K, S); // $S_{q\times k} += Q_{q\times d}\times K^T_{d\times k}$
 	}
 	for(...){
 	    prefetch(V, vReg); //将V加载到reg
@@ -296,4 +296,3 @@ template <typename QVCoord>
 \begin{lstlisting}[language=c++]
 //normalization-> reorder->copy back
 \end{lstlisting}
-\subsection{内存访问模式}
