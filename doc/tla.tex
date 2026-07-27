@@ -132,7 +132,7 @@ FMHAConfig<Templates...>::run(options){ //xe_fmha_fwd_runner.hpp:static int run(
 			/*src/include/cute/util/compat/launch_policy.hpp
 			 struct KernelFunctor::operator(); ////即以模板传入的cutlass::device_kernel<FMHAKernel>的FMHAKernel::operator();//
 			*/
-			sycl_exp::nd_launch<N>(que, config, KernelFunctor); //TODO: 了解nd_launch与普通SYCL不同
+			sycl_exp::nd_launch<N>(que, config, KernelFunctor); //基于parallel_for的一种实现便于cuda迁移
 		    });
 		}
 	    }
@@ -141,11 +141,11 @@ FMHAConfig<Templates...>::run(options){ //xe_fmha_fwd_runner.hpp:static int run(
 }
 \end{lstlisting}
 Conclusion: 对于FMHA算子重点看他的mainloop, epilogue, scheduler
-\begin{lstlisting}[language=c++]
+\begin{lstlisting}[language=c++, mathescape=true]
 //src/applications/flash_attention_v2/collective/xe_fmha_mainloop.hpp, XeFMHAFwdKernel::opeator()
 void operator()(Params const &params, char *smem_buf){//这个一个WI运行的函数
-    SharedStorage& shared_storage = *reinterpret_cast<SharedStorage *>(smem_buf); //SharedStorage是个Unon先mainloop再epilogue时间不重叠使用同一块SLM
-    int head_group_q = s.num_heads_q / s.num_heads_kv; //GQA grp size, 如果是MHA head_group_q=1, else 多头共用kv
+    SharedStorage& shared_storage = *reinterpret_cast<SharedStorage *>(smem_buf); //SharedStorage是个Unon先mainloop与epilogue分时复用同一块SLM
+   int head_group_q = s.num_heads_q / s.num_heads_kv; //GQA grp size, 如果是MHA head_group_q=1, else 多头共用kv
     int thr_id = int(ThreadIdxX());
     int q_sg_tile = get<0>(shape_div(TileShapeQK{}, shape(SubgroupLayoutQK{}))); //一个subgrp处理q的行数
     ...
@@ -167,7 +167,7 @@ void operator()(Params const &params, char *smem_buf){//这个一个WI运行的�
       // Main loop
       int l_coord = is_var_len ? 0 : idx_b;
       CollectiveMainloop mainloop(params.mainloop, shared_storage.mainloop);
-      mainloop(Q(_,_,head_q,l_coord),
+      mainloop(Q(_,_,head_q,l_coord), //$S=Q\cdot K^T \rightarrow softmax \rightarrow O = P\cdot V$
                K(_,_,head,l_coord),
                V(_,_,head,l_coord),
                tArA, tA_max, tA_sum,
@@ -182,7 +182,7 @@ void operator()(Params const &params, char *smem_buf){//这个一个WI运行的�
       }
       // Epilogue
       CollectiveEpilogue epilogue{params.epilogue, shared_storage.epilogue};
-      epilogue(O(_,_,head_q,l_coord),
+      epilogue(O(_,_,head_q,l_coord), //normalization, reorder, writeback
                tArA, tA_max, tA_sum,
                blk_qv, thr_id);
     }
@@ -195,16 +195,7 @@ void operator()(Params const &params, char *smem_buf){//这个一个WI运行的�
     \item FMHA::operator()更上一层的WG, SG, WI的划分.
     \item 欲提TPS, 因decode是memory bound, 侧重看memory部分
 \end{enumerate}
-\begin{lstlisting}[language=c++, mathescape=true]
-//overview
-XeFMHAFwdKernel::operator(){
-    FMHAFwdMainloop::operator(){ //$S=Q\cdot K^T \rightarrow softmax \rightarrow O = P\cdot V$
-    }
-    FMHAFwdEpilogue::operator(){ //normalization, reorder, writeback
-    }
-}
-\end{lstlisting}
-任务划分
+\subsection{任务划分}
 \begin{lstlisting}[language=c++, mathescape=true, escapechar=\%]
 //1stBlood/src/xe_fmha_fwd_runner.hpp, static void run(..param..)中定义grid, block, sg有cute::intel::sg_size;////此处为16, TODO: 了解其机制
 /**
@@ -221,7 +212,88 @@ XeFMHAFwdKernel::operator(){
     };
 */
 grid = FMHAKernel::get_grid_shape(..)//->Schedler::get_grid_shape(), 在Scduler::to_underlying_params中构造了grid
-%\color{NavyBlue}{grid}% = $\left(\lceil\frac{d_{vo}}{tile_1}\rceil, \lceil\frac{s_{qo}}{tile_0}\rceil, b \times h_q\right)$//最终以sycl::nd_range<3>(grid.x, grid.y, grid.z)的方式来指定global size. 其中tile是在1stBlood/src/test.cpp中ShapeQK/PV/Out..=<_256, _64_, ..>来定义每个WG处理的tile大小
-//根据指定的SubgroupLayoutQK来计算SGPerWG, 然后WG=SGPerWG * intel::sg_size
-SGPerWG= //1st./src/test.cpp SubgroupLayoutQK=Layout<Shape<_32,_1,_1>>来指定在M,N,K方向上的重复次数, 
+%\color{NavyBlue}{grid}% = $\left(\lceil\frac{d_{vo}}{tile_v}\rceil, \lceil\frac{s_{qo}}{tile_q}\rceil, b \times h_q\right)$//最终以sycl::nd_range<3>(grid.x, grid.y, grid.z)的方式来指定global size. 其中tile是在1stBlood/src/test.cpp中ShapeQK/PV/Out..=<_256, _64_, ..>来定义每个WG处理的tile大小
+SGPerWG= _32x_1; /*
+由1st./src/test.cpp SubgroupLayoutQK=Layout<Shape<_32,_1,_1>>来指定在M,N,K方向上的重复次数, 
+在一个WG对应的一个TiledMMA使用ThreadLayout来描述每个thread在(V, M, N, K)4维atom空间的位置
+*/
+%\color{NavyBlue}{workgroup}% = SGPerWG $\times$ intel::sg_size
 \end{lstlisting}
+Conclusion:
+\begin{longtable}{p{2cm}p{16cm}}
+\hline
+    Size& 说明\\
+\hline
+GlobalSize & $\left(\lceil\frac{d_{vo}}{tile_v}\rceil, \lceil\frac{s_{qo}}{tile_q}\rceil, b \times h_q\right)$\\
+SGPerWG & 由SubgroupLayoutQK指定, 用来描述一个SG中的thread在M, N, K方向上的重复次数(test.cpp)\\
+WorkgroupSize& SGPerWG $\times$ intel::sg\_size\\
+\hline
+    \caption{任务划分}
+\end{longtable}
+SubgroupLayout与ThreadLayout. SubgroupLayout用于指定一个Subgroup各个thread的重复次数, ThreadLayout是SubgroupLayout的超集(多了一维, 用于指定SGS, <V, M, N, K>)
+
+eg. ThreadLayout = <V, M, N, K>则
+\begin{enumerate}
+    \item 共有V个WI(对应一个Atom)
+    \item M方向上atom循环$\frac{M}{SGS}$次
+    \item N方向上atom循环$\frac{N}{SGS}$次
+    \item K方向上atom循环$\frac{K}{SGS}$次
+\end{enumerate}
+\begin{lstlisting}
+GemmUniversalAdapter //host端配置与接口, 负责启动kernel
+    |_GemmUniversal  //device端入口, 负责调度WG
+	|_CollectiveMMA //协同WG, 循环执行多个TiledMMA完成一个输出块的计算
+	    |_TiledMMA //描述如何在空间上将atom平铺到SG上并发执行
+		|_Atom //最底层硬件指令封装
+\end{lstlisting}
+
+\subsection{mainloop}
+\begin{lstlisting}[language=c++, mathescape=true]
+src/applications/flash_attention_v2/collective/xe_fmha_fwd_mainloop.hpp
+template <typename QVCoord>
+  CUTLASS_DEVICE
+  void
+  operator()(TensorQ2D const& Q_2D,     // (q,d)
+             TensorK2D const& K_2D,     // (k,d)
+             TensorV2D const& V_2D,     // (d,k)
+             FragA          & tArA,     // Output accumulator (q,v)
+             FragARow       & tA_max,   // Softmax row-wise max accumulator
+             FragARow       & tA_sum,   // Softmax row-wise sum accumulator
+             QVCoord          blk_qv,   // WG tile indices: (Q,V)
+             int              blk_k0,   // K block range: [K0,K1)
+             int              blk_k1,
+             int              total_blk, // Total # of K blocks
+             int              thr_id,
+             int              seq_len,
+             int              seq_len_kv_cache,
+             int              l_coord,
+             int              full_tile_offset,
+             int              discard_seq_coord,
+            TensorK_cache2D const& K_cache_2D = TensorK_cache2D{},
+            TensorV_cache2D const& V_cache_2D = TensorV_cache2D{}) {
+    Tensor gQ,gK,gV.. //创建WG负责的Tensor(layout only, no memory ops)
+
+    //mainloop_body lambda
+    mainloop_body = [&](auto cached_k, int K,
+			auto& copy_k_cur, auto& copy_v_cur,
+			auto& prefetch_v_cur, auto& tKgK_cur,
+			auto& tVgV_cur, auto& pVgV_cur) {
+	//$S = QK$
+	for(...){
+	    copy(...);//将Q, K从mem加载到reg
+	    reorder();
+	    cute::gemm(Q, K, S); // $S = Q\times K^T$
+	}
+	for(...){
+	    prefetch(V, vReg); //将V加载到reg
+	}
+	softmax(scale * S); //
+	//$O += PV$
+    }
+}
+\end{lstlisting}
+\subsection{epilogue}
+\begin{lstlisting}[language=c++]
+//normalization-> reorder->copy back
+\end{lstlisting}
+\subsection{内存访问模式}

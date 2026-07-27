@@ -11,6 +11,7 @@
 \usepackage[shortlabels]{enumitem}
 \usepackage{pdflscape}
 \usepackage{listings}
+\usepackage[many]{tcolorbox}
 \setCJKmainfont{WenQuanYi Micro Hei}
 \setmainfont{ProFontWindows}
 \setenumerate[1]{itemsep=0pt,partopsep=0pt,parsep=\parskip,topsep=1pt}
@@ -29,6 +30,13 @@
   filecolor=blue,
   linkcolor=blue,
   urlcolor=blue
+}
+\tcolorboxenvironment{lstlisting}{
+  spartan,
+  frame empty,
+  boxsep=0mm,
+  left=1mm,right=1mm,top=-1mm,bottom=-1mm,
+  colback=lgtgray,
 }
 \lstset{
          basicstyle=\footnotesize, % 代码风格
