@@ -19,9 +19,9 @@ FMHA计算内容
 \end{eqnarray}
 
 \begin{enumerate}
-    \item $Q_{s_{qo}\times d_{qk} \times h_q \times b}$.
+    \item $Q_{b \times h_q \times s_{qo}\times d_{qk}}$.
 
-	$s_{qo}$: seq len of Qury/Output, 当前step要算的token数.
+	$s_{qo}$: seq len of Query/Output, 当前step要算的token数.
 
 	$d_{qk}$: 每个head内Q/K向量的维度
 
@@ -30,14 +30,14 @@ FMHA计算内容
 	$b$: batch
 
 	mem layout: $\left[b\right]\left[h_q\right]\color{NavyBlue}{\left[s_{qo}\right]\left[d_{qk}\right]}$
-    \item $K_{s_{kv}\times d_{qk}\times h_{kv}\times b}$
+    \item $K_{b\times h_{kv} \times s_{k}\times d_{qk}}$ %$K_{s_{kv}\times d_{qk}\times h_{kv}\times b}$
 
-	$s_{kv}$: seq len of Key/Value, 被attend的上下文长度
+	$s_{kv}$: seq len of Key/Key\_Cache/Value/Value\_Cache, 被attend的上下文长度
 
 	$h_{kv}$: KV head num
 	
 	mem layout: $\left[b\right]\left[h_{kv}\right]\color{NavyBlue}{\left[s_{kv}\right]\left[d_{qk}\right]}$
-    \item $V_{d_{vo}\times s_{kv}\times h_{kv}\times b}$
+    \item $V_{b\times h_{q}\times s_q \times d_v}$%$V_{d_{vo}\times s_{kv}\times h_{kv}\times b}$
 
 	$d_{vo}$: vector len of within V/O heads
 
