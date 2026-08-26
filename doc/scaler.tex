@@ -1,11 +1,30 @@
 %%文件: scaller.tex
 %%作者: thegreatchaos@thegreatchaos.com
 %%日期: 2026-08-26 15:07:31
-通过想特定版本的\href{vLLM}{https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu}, \href{vllm-xpu-kernels}{https://github.com/vllm-project/vllm-xpu-kernels}打patch + customized ESIMD kernels方式来enable features/optimization. 相应的patches及esimd的kernels放在\href{llm-scaller}{https://github.com/intel/llm-scaler/}
+通过向特定版本的\href{https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu}{vLLM}, \href{https://github.com/vllm-project/vllm-xpu-kernels}{vllm-xpu-kernels}打patch + customized ESIMD kernels方式来enable features/optimization. 
+相应的patches及esimd的kernels放在\href{https://github.com/intel/llm-scaler/}{llm-scaller}
 
 开发流程:
 \begin{enumerate}
-    \item 从\href{vLLM}{https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu}, \href{vllm-xpu-kernels}{https://github.com/vllm-project/vllm-xpu-kernels}, \href{llm-scaler}{https://github.com/intel/llm-scaler/}fork出三个repo: \href{vBase}{https://github.com/intel-sandbox/llm-scaler-vllm-xpu}, \href{kBase}{https://github.com/analytics-zoo/vllm-xpu-kernels}, \href{sBase}{https://github.com/intel/llm-scaler/}
+    \item 从\href{https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu}{vLLM}, \href{https://github.com/vllm-project/vllm-xpu-kernels}{vllm-xpu-kernels}, \href{https://github.com/intel/llm-scaler/}{llm-scaler}fork出三个repo: \href{https://github.com/intel-sandbox/llm-scaler-vllm-xpu}{vBase}, 
+	\href{https://github.com/analytics-zoo/vllm-xpu-kernels}{kBase}, \href{https://github.com/intel/llm-scaler/}{sBase}
     \item 在vBase, kBase上修改, 如果涉及esimd kenrels则需要再sBase/vllm/custom-esimd-kernels-vllm目录下修改
     \item 完成开发/测试之后将vBase, kBase的改动以patch形式放到llm-scaler下, 如果有esimd kernels改动则merge到llm-scaler下
 \end{enumerate}
+
+
+既有xpu-kernels, esimd存在的必要?  xpu-kernels及sycl-tla过于heavy: 设计复杂, 各个算子独立. ESIMD是一个相对轻量的shortcut, 易于实现kernel fusion.
+
+替代与fallback. 两者都是通过PyTorch的算子的方式注册, 被vLLM使用.
+\begin{longtable}{p{9cm}|p{9cm}}
+xpu-kernels&esimd\\
+\hline
+走vLLM官方的ir dispatch机制 
+\begin{enumerate}
+    \item platform初始化时import vllm\_xpu\_kernels.\_C/\_moe\_C/\_xpu\_C. //注册rms\_norm/flash\_attn/grouped\_gemm...等算子
+    \item 
+\end{enumerate}
+&
+走显示注册机制\\
+\end{longtable}
+
