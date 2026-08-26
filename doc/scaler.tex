@@ -1,0 +1,11 @@
+%%文件: scaller.tex
+%%作者: thegreatchaos@thegreatchaos.com
+%%日期: 2026-08-26 15:07:31
+通过想特定版本的\href{vLLM}{https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu}, \href{vllm-xpu-kernels}{https://github.com/vllm-project/vllm-xpu-kernels}打patch + customized ESIMD kernels方式来enable features/optimization. 相应的patches及esimd的kernels放在\href{llm-scaller}{https://github.com/intel/llm-scaler/}
+
+开发流程:
+\begin{enumerate}
+    \item 从\href{vLLM}{https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu}, \href{vllm-xpu-kernels}{https://github.com/vllm-project/vllm-xpu-kernels}, \href{llm-scaler}{https://github.com/intel/llm-scaler/}fork出三个repo: \href{vBase}{https://github.com/intel-sandbox/llm-scaler-vllm-xpu}, \href{kBase}{https://github.com/analytics-zoo/vllm-xpu-kernels}, \href{sBase}{https://github.com/intel/llm-scaler/}
+    \item 在vBase, kBase上修改, 如果涉及esimd kenrels则需要再sBase/vllm/custom-esimd-kernels-vllm目录下修改
+    \item 完成开发/测试之后将vBase, kBase的改动以patch形式放到llm-scaler下, 如果有esimd kernels改动则merge到llm-scaler下
+\end{enumerate}

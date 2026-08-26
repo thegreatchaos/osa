@@ -3,9 +3,8 @@
 
 
 流程概要:
-    - 从[vLLM](https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu), [xpu-kernels](https://github.com/vllm-project/vllm-xpu-kernels)fork [vBase](https://github.com/intel-sandbox/llm-scaler-vllm-xpu), [kBase](https://github.com/analytics-zoo/vllm-xpu-kernels). 
-    - 在vBase & kBase上以独立的分支开发
-    - 开发后将改动以patch形式放到llm-scaler repo中
-
-我们只需要关心第二步.
+    1. 从[vLLM](https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu), [xpu-kernels](https://github.com/vllm-project/vllm-xpu-kernels)fork [vBase](https://github.com/intel-sandbox/llm-scaler-vllm-xpu), [kBase](https://github.com/analytics-zoo/vllm-xpu-kernels). 
+    2. 在vBase & kBase上以独立的分支开发
+    3. 开发后将改动以patch形式放到llm-scaler repo中
+如果改动只涉及kBase/vBase我们只需要关心第二步. ESIMD开发需要将ESIMD kernels提交到llm-scaler, 并修改必要的vBase
 

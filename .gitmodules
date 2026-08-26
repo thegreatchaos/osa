@@ -16,6 +16,6 @@
 [submodule "scalerDev/ws/kBase"]
 	path = scalerDev/ws/kBase
 	url = https://github.com/analytics-zoo/vllm-xpu-kernels
-[submodule "scalerDev/ws/llm-scaler"]
-	path = scalerDev/ws/llm-scaler
-	url = https://github.com/intel/llm-scaler.git
+[submodule "scalerDev/ws/sBase"]
+	path = scalerDev/ws/sBase
+	url = https://github.com/thegreatchaos/llm-scaler.git
