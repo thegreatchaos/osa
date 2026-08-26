@@ -36,6 +36,9 @@ gsb(){ # Get source and build developement install
     pip install --force-reinstall triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
     pip install --no-build-isolation -e . --extra-index-url https://download.pytorch.org/whl/xpu
 
+    pip uninstall triton -y
+    pip install --force-reinstall triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
+
     cd ${WS}
     if [ ! -d "kBase" ]; then
 	git submodule add https://github.com/analytics-zoo/vllm-xpu-kernels kBase
