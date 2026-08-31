@@ -19,12 +19,124 @@
 \begin{longtable}{p{9cm}|p{9cm}}
 xpu-kernels&esimd\\
 \hline
-走vLLM官方的ir dispatch机制 
-\begin{enumerate}
-    \item platform初始化时import vllm\_xpu\_kernels.\_C/\_moe\_C/\_xpu\_C. //注册rms\_norm/flash\_attn/grouped\_gemm...等算子
-    \item 
-\end{enumerate}
+走vLLM官方的dispatch机制, 在vLLM的platform初始化时import vllm\_xpu\_kernels.\_C/\_moe\_C/\_xpu\_C. //注册rms\_norm/flash\_attn/grouped\_gemm...等算子
 &
-走显示注册机制\\
+走显示注册机制, 在vLLM layer中显式import custom\_esimd\_kernels\_vllm(失败则用vllm中默认的实现), 同时也会读取环境变量:DISABLE\_ESIMD\_{GEMV/NORM/GEMM/...}来启用/禁用ESIMD的kernels\\
 \end{longtable}
+
+
+如何添加一个新的ESIMD算子
+\begin{enumerate}
+    \item 编译入口
+\begin{lstlisting}[language=c++]
+ext_modules.append(  ####添加一个SyclExtension, 必须放在首个ext_modules = [...]之后
+    SyclExtension(
+        name="custom_esimd_kernels_vllm.custom_esimd_kernels_newKernelName",
+        sources=[
+            "csrc/xpu/esimd_kernel_newKernelName.sycl",
+            "csrc/xpu/torch_extension_newKernelName.cc",
+        ],
+        include_dirs=[
+            root / "include",
+            root / "csrc",
+        ],
+        extra_compile_args={
+            "cxx": ["-O3", "-std=c++17"],
+            "sycl": ["-fsycl", "-ffast-math", "-fsycl-device-code-split=per_kernel",
+                     "-fsycl-targets=spir64_gen", "-Xs", "-device bmg,ptl", ##这里添加目标平台AoT
+                     f"-I{torch_include}"],
+        },
+        extra_link_args=["-Wl,-rpath,$ORIGIN/../../torch/lib"],
+        py_limited_api=False,
+    )
+)
+\end{lstlisting}
+    \item esimd新算子实现
+	\begin{enumerate}
+	    \item 创建新算子头文件
+\begin{lstlisting}[language=c++]
+//csrc/xpu/esimd_kernels/newKernelName.h
+...
+template<....>
+struct newKernelName{
+    ....
+    void operator()(sycl::nd_item<..> it) const SYCL_ESIMD_KERNEL{ ##kernel的operator()必须加SYCL_ESIMD_KERNEL否则不会按照ESIMD编译. 同样如果会被kernel调用的esimd函数要加上SYCL_ESIMD_FUNCTION来修饰
+	...
+    }
+};
+
+template<...>
+inline void newKernelName_host(...){
+    q.submit([&](sycl::handle& h){
+	h.parallel_for(sycl::nd_range....,
+	newKernelName<tempalteParam1, templateParam2...>{...,...,...});
+    });
+}
+\end{lstlisting}
+	    \item sycl文件中注册
+\begin{lstlisting}[language=c++]
+//csrc/xpu/esimd_kernel.sycl
+#include "esimd_kernels/newKernelName.h" //
+at::Tensor esimd_newKernelName(at::Tensor input, .....){
+    ...
+    auto& q = get_device_queue(input);
+    EXTRACT_PTR(p_in, input);
+
+    newKernelName_host<...>(p_in, ...);
+}
+\end{lstlisting}
+	    \item 注册到torch dispatcher
+\begin{lstlisting}[language=c++]
+TORCH_LIBRARY(custom_esimd_kernels_vllm, m){
+    ...
+    m.def("esimd_newKernelName(ParamType paramName, ...) - > Tensor");
+    m.impl("esimd_newKernelName", torch::kXPU, &esimd_newKernelName);
+    ...
+}
+\end{lstlisting}
+	    \item 注册python wrapper
+\begin{lstlisting}[language=python]
+##python/custom_esimd_kernels_vllm/ops.py
+def esimd_newKernelName(...) -> torch.Tensor:
+    ...
+    return _ops.esimd_newKernelName(....);
+
+##python/custom_esimd_kernels_vllm/__init__.py
+from custom_esimd_kernels_vllm.ops import(
+    ...
+    esimd_newKernelName, #
+    ...
+)
+\end{lstlisting}
+	\end{enumerate}
+    \item 编译
+\begin{lstlisting}
+source /opt/intel/oneapi/setvars.sh
+cd /path/to/scalerDev/ws/sBase/vllm/custom-esimd-kernels-vllm
+TORCH_XPU_ARCH_LIST=ptl MAX_JOBS=1 python setup.py bdist_wheel
+pip install --force--reinstall --no-deps dist/*.whl
+\end{lstlisting}
+    \item 测试
+\begin{lstlisting}[language=python]
+#scalerDev/ws/sBase/vllm/custom-esimd-kernels-vllm/tests/test_newKernelName.py
+import sys, torch
+import custom_esimd_kernels_vllm
+
+def py_ref(...):
+    return ..
+def run(...):
+    out = torch.ops.custom_esimd_kernels_vllm.esimd_newKernelName(...);
+    diff = (out - py_ref(..))
+    ok == diff < criteria_or_whatever
+    if ok:
+	print('pass')
+    else:
+	print('fail')
+
+if __name__ == '__main__':
+    cases = ...
+    for c in case:
+	run(c...);
+\end{lstlisting}
+\end{enumerate}
 
