@@ -25,16 +25,51 @@ xpu-kernels&esimd\\
 \end{longtable}
 
 
-如何添加一个新的ESIMD算子
+如何添加一个新的ESIMD算子, 以ESIMD\_GEMM算子为例
 \begin{enumerate}
-    \item 编译入口
+    \item vllm入口的修改. 显式替代xpu-kernels. git diff > vllm.patch
+\begin{lstlisting}[language=python]
+#vBase/vllm/model_executor/layers/esimd_utils.py中添加
+_DISABLE_ESIMD_GEMM = _env_disabled("DISABLE_ESIMD_GEMM")
+def disable_esimd_gemm() -> bool:
+    return _DSIABLE_ESIMD_GEMM
+#vBase/vllm/model_executor/kernels/linear/scaled_mm/xpu.py
+from vllm.model_executor.layers.esimd_utils import(
+    ...
+    disable_esimd_gemm, #添加此行
+    ...
+)
+#vBase/vllm/model_executor/kernels/linear/scaled_mm/xpu.py, 低精度矩阵乘法
+class XPUFP8ScaledMMLinearKernel(FP8ScaledMMLinearKernel):
+    ...
+    def apply_weight(...):
+	#添加以下
+	if(ESIMD_AVAIABLE and and not disable_esimd_gemm()...):
+	    esimd_gemm_fp8_pert(..., out)
+	    return out;
+	#添加结束
+	return torch.ops._xpu_C.fp8_gemm_w8a16(...) #禁用/ESIMD not available则走xpu-kernels那套
+#extra: 检查其他会用到fp8_gemm的部分, 视情况决定是否替换
+#修改单元测试及benchmark.
+# 1. grep -rn fp8_gemm_w8a16 -> 得到tests/kernels/quantization/test_xpu_fp8_scaled_mm.py, benchmarks/kernels/benchmark_xpu_fp8_w8a16.py, ... 修改这两个文件
+\end{lstlisting}
+    \item 目录结构, 文件如果不存在则创建他
+\begin{lstlisting}
+sBase/vllm/custom-esimd-kernels-vllm
+|_csrc/xpu/esimd_kernel_gemm.sycl		//esimd实现文件
+|_csrc/xpu/torch_extension_gemm.cc		//PyTorch C++算子注册, 之后可以在python中通过torch.ops来调用
+|_include/kernel_ops.h				//esimd_gemm_fp8_pert的函数声明
+|_python/custom_esimd_kernels_vllm/__init__.py	//让python初始化该package时候自动加载esimd_gemm_fp8_pert
+|_python/custom_esimd_kernels_vllm/ops.py	//定义接口, 接口中通过torch.ops来调用C++的实现
+\end{lstlisting}
+    \item 'Makefile': setup.py
 \begin{lstlisting}[language=c++]
 ext_modules.append(  ####添加一个SyclExtension, 必须放在首个ext_modules = [...]之后
     SyclExtension(
-        name="custom_esimd_kernels_vllm.custom_esimd_kernels_newKernelName",
+        name="custom_esimd_kernels_vllm.custom_esimd_kernels_gemm",
         sources=[
-            "csrc/xpu/esimd_kernel_newKernelName.sycl",
-            "csrc/xpu/torch_extension_newKernelName.cc",
+            "csrc/xpu/esimd_kernel_esimd_kernel_gemm.sycl",
+            "csrc/xpu/torch_extension_gemm.cc",
         ],
         include_dirs=[
             root / "include",
@@ -51,64 +86,6 @@ ext_modules.append(  ####添加一个SyclExtension, 必须放在首个ext_module
     )
 )
 \end{lstlisting}
-    \item esimd新算子实现
-	\begin{enumerate}
-	    \item 创建新算子头文件
-\begin{lstlisting}[language=c++]
-//csrc/xpu/esimd_kernels/newKernelName.h
-...
-template<....>
-struct newKernelName{
-    ....
-    void operator()(sycl::nd_item<..> it) const SYCL_ESIMD_KERNEL{ ##kernel的operator()必须加SYCL_ESIMD_KERNEL否则不会按照ESIMD编译. 同样如果会被kernel调用的esimd函数要加上SYCL_ESIMD_FUNCTION来修饰
-	...
-    }
-};
-
-template<...>
-inline void newKernelName_host(...){
-    q.submit([&](sycl::handle& h){
-	h.parallel_for(sycl::nd_range....,
-	newKernelName<tempalteParam1, templateParam2...>{...,...,...});
-    });
-}
-\end{lstlisting}
-	    \item sycl文件中注册
-\begin{lstlisting}[language=c++]
-//csrc/xpu/esimd_kernel.sycl
-#include "esimd_kernels/newKernelName.h" //
-at::Tensor esimd_newKernelName(at::Tensor input, .....){
-    ...
-    auto& q = get_device_queue(input);
-    EXTRACT_PTR(p_in, input);
-
-    newKernelName_host<...>(p_in, ...);
-}
-\end{lstlisting}
-	    \item 注册到torch dispatcher
-\begin{lstlisting}[language=c++]
-TORCH_LIBRARY(custom_esimd_kernels_vllm, m){
-    ...
-    m.def("esimd_newKernelName(ParamType paramName, ...) - > Tensor");
-    m.impl("esimd_newKernelName", torch::kXPU, &esimd_newKernelName);
-    ...
-}
-\end{lstlisting}
-	    \item 注册python wrapper
-\begin{lstlisting}[language=python]
-##python/custom_esimd_kernels_vllm/ops.py
-def esimd_newKernelName(...) -> torch.Tensor:
-    ...
-    return _ops.esimd_newKernelName(....);
-
-##python/custom_esimd_kernels_vllm/__init__.py
-from custom_esimd_kernels_vllm.ops import(
-    ...
-    esimd_newKernelName, #
-    ...
-)
-\end{lstlisting}
-	\end{enumerate}
     \item 编译
 \begin{lstlisting}
 source /opt/intel/oneapi/setvars.sh
@@ -118,7 +95,7 @@ pip install --force--reinstall --no-deps dist/*.whl
 \end{lstlisting}
     \item 测试
 \begin{lstlisting}[language=python]
-#scalerDev/ws/sBase/vllm/custom-esimd-kernels-vllm/tests/test_newKernelName.py
+#scalerDev/ws/sBase/vllm/custom-esimd-kernels-vllm/tests/**.py #不同于上述的vllm中的测试, 这个实在custom-esimd-kernels-vllm中自己的UT
 import sys, torch
 import custom_esimd_kernels_vllm
 
@@ -140,3 +117,4 @@ if __name__ == '__main__':
 \end{lstlisting}
 \end{enumerate}
 
+在esimd版本上的profiling, 从grouped\_gemm开始.
