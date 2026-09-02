@@ -15,7 +15,9 @@ from ittapi import collection_control as cc
 import ittapi.compat  as itt
 import time
 import random
-INPUT_LENS=[10_000, 20_000, 40_000, 60_000, 70_000]#, 80_000],,, 80K 会OOM
+PERF_LEN=[10000]
+INPUT_LENS=PERF_LEN
+#INPUT_LENS=[10_000, 20_000, 40_000, 60_000, 70_000]#, 80_000],,, 80K 会OOM
 #INPUT_LENS=[4000, 40000]
 #INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
 MAX_OUTPUT=512
