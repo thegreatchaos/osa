@@ -78,7 +78,7 @@ ext_modules.append(  ####添加一个SyclExtension, 必须放在首个ext_module
         extra_compile_args={
             "cxx": ["-O3", "-std=c++17"],
             "sycl": ["-fsycl", "-ffast-math", "-fsycl-device-code-split=per_kernel",
-                     "-fsycl-targets=spir64_gen", "-Xs", "-device bmg,ptl", ##这里添加目标平台AoT
+                     "-fsycl-targets=spir64_gen", "-Xs", "-device bmg", ##此处的AOT写法无效, 需要再build的时候. TORCH_XPU_ARCH_LIST=${TORCH_XPU_ARCH_LIST:-bmg,ptl}
                      f"-I{torch_include}"],
         },
         extra_link_args=["-Wl,-rpath,$ORIGIN/../../torch/lib"],
