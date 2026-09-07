@@ -19,7 +19,7 @@ common(){
 qwen36(){
     if [ ${isPerf} -eq 0 ]; then
 	echo -e "\033[31mRun without perf\033[0m"
-	sudo sh -c "sync && echo 3 | tee /proc/sys/vm/drop_caches" && python qwen36-35b-a3b.py
+	sudo sh -c "sync && echo 3 | tee /proc/sys/vm/drop_caches" && python qwen36-35b-a3b.py 2>&1 | tee /tmp/run_${TS}.log
     else
 	echo -e "\033[31mStart profiing\033[0m"
 	common;

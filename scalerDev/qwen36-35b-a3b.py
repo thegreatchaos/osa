@@ -21,9 +21,9 @@ INPUT_LENS=PERF_LEN
 #INPUT_LENS=[4000, 40000]
 #INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
 MAX_OUTPUT=512
-MML=INPUT_LENS[-1] + MAX_OUTPUT# max model len, 须满足MML > inputTokenLen + outputTokenLen
+MML=22000 #INPUT_LENS[-1] + MAX_OUTPUT# max model len, 须满足MML > inputTokenLen + outputTokenLen
 GMU=0.8  # gpu memory utilization
-MNBT=8192# max number batched tokens, 
+MNBT=4096# max number batched tokens, 
 LOOPS=5
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=MAX_OUTPUT)
 ttft_params     = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=1)
@@ -42,13 +42,14 @@ def main():
               gpu_memory_utilization=GMU,
               enforce_eager=True, #禁用XPU/NV Graph
               max_model_len=MML, 
-              quantization="fp8", 
+              quantization="sym_int4", 
               trust_remote_code=True,
               tensor_parallel_size=1, #GPU个数
               block_size=64, 
+              dtype="float16",
               max_num_batched_tokens=MNBT,  #每批次最大的token总数, 影响chunk prefill
               max_num_seqs=1,         #最大并发数
-              disable_log_stats=False,  #禁用日志
+              disable_log_stats=True,  #禁用日志
               enable_prefix_caching=False)
     infer = itt.domain_create("infer.vLLM.Qwen3.6-35B-A3B")
     tokenizer = llm.get_tokenizer()

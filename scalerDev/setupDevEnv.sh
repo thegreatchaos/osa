@@ -41,6 +41,7 @@ gsb(){ # Get source and build developement install
     if [ ! -d "kBase" ]; then
 	git submodule add https://github.com/analytics-zoo/vllm-xpu-kernels kBase
     fi
+
     cd ${WS}/vBase
     pip install -r requirements/xpu.txt
     pip uninstall -y triton triton-xpu
