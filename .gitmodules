@@ -10,12 +10,3 @@
 [submodule "sycl-tla/src"]
 	path = sycl-tla/src
 	url = https://github.com/thegreatchaos/sycl-tla
-[submodule "scalerDev/ws/vBase"]
-	path = scalerDev/ws/vBase
-	url = https://github.com/intel-sandbox/llm-scaler-vllm-xpu
-[submodule "scalerDev/ws/kBase"]
-	path = scalerDev/ws/kBase
-	url = https://github.com/analytics-zoo/vllm-xpu-kernels
-[submodule "scalerDev/ws/sBase"]
-	path = scalerDev/ws/sBase
-	url = https://github.com/thegreatchaos/llm-scaler.git
