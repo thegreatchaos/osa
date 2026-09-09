@@ -26,8 +26,8 @@ qwen38(){
 	export VLLM_XPU_ENABLE_XPU_GRAPH=1
 	#vtune -r /tmp/qwen38_27B_uarch_${TS} -data-limit=0 -collect uarch-exploration -start-paused -- python qwen38-27B.py 2>&1 | tee /tmp/uarch_perf_${TS}.log
 	vtune -r /tmp/qwen38_27B_gpu_${TS} -data-limit=0 -collect gpu-hotspots -start-paused -- python qwen38-27B.py 2>&1 | tee /tmp/gpu_perf_${TS}.log
-	cp qwen36-35b-a3b.py /tmp/qwen38_27B_uarch_${TS}/
-	cp qwen36-35b-a3b.py /tmp/qwen38_27B_gpu_${TS}/
+	#cp qwen38-27B.py /tmp/qwen38_27B_uarch_${TS}/
+	cp qwen38-27B.py /tmp/qwen38_27B_gpu_${TS}/
     fi
 }
 qwen38;
