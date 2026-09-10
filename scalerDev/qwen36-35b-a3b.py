@@ -37,6 +37,7 @@ def build_prompt_token_ids(tokenizer, target_len):
             ids.append(t)
     return ids
 def main():
+    print("\033[41musing gpu %s\033[0m\n" %  os.environ['ZE_AFFINITY_MASK'])
     random.seed(0)
     llm = LLM(model="/home/chaos/prjs/models/Qwen3.6-35B-A3B",
               gpu_memory_utilization=GMU,

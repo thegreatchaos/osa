@@ -5,7 +5,7 @@ export VLLM_TARGET_DEVICE=xpu
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export VLLM_XPU_KERNELS_COMMIT=3cab97a
 export TORCH_XPU_ARCH_LIST=${TORCH_XPU_ARCH_LIST:-bmg,ptl}
-export sBaseVer="vllm-0.26.0-b1"
+export sBaseVer="vllm-0.26.0-b2"
 export vBaseVer="v0.26.0"
 export kBaseCommitId="a6929869587fa6c40dbe393eedc96eeab076bfbb"
 set -x
