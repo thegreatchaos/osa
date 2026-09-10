@@ -15,12 +15,13 @@ from ittapi import collection_control as cc
 import ittapi.compat  as itt
 import time
 import random
-PERF_LEN=[2]
+UNI_LEN=4
+PERF_LEN=[UNI_LEN]
 INPUT_LENS=PERF_LEN
 #INPUT_LENS=[10_000, 20_000, 40_000, 60_000, 70_000]#, 80_000],,, 80K 会OOM
 #INPUT_LENS=[4000, 40000]
 #INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
-MAX_OUTPUT=2
+MAX_OUTPUT=UNI_LEN
 MML=INPUT_LENS[-1] + MAX_OUTPUT# max model len, 须满足MML > inputTokenLen + outputTokenLen
 GMU=0.8  # gpu memory utilization
 MNS=1
