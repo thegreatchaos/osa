@@ -15,7 +15,7 @@ from ittapi import collection_control as cc
 import ittapi.compat  as itt
 import time
 import random
-UNI_LEN=4
+UNI_LEN=256
 PERF_LEN=[UNI_LEN]
 INPUT_LENS=PERF_LEN
 #INPUT_LENS=[10_000, 20_000, 40_000, 60_000, 70_000]#, 80_000],,, 80K 会OOM
