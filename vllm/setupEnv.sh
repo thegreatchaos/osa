@@ -49,29 +49,32 @@ gsp(){ # get source and patch
     source ${ROOT}/env.sh
 
     if [ ! -d "kerns" ]; then
-	git submodule add -f https://github.com/thegreatchaos/vllm-xpu-kernels.git kerns
+	git clone https://github.com/vllm-project/vllm-xpu-kernels.git kerns
     fi
+    cd ${ROOT}
     if [ ! -d "app" ]; then
-	git submodule add -f https://github.com/intel-innersource/applications.ai.gpu.vllm-xpu app
+	git clone https://github.com/vllm-project/vllm.git app
     fi
 }
 doBuild(){
     source ${ROOT}/env.sh
-
     if [ "$1" = "app" ]; then
 	#step 1, build the app first;
 	# ref: https://docs.vllm.ai/en/latest/getting_started/installation/gpu/index.html#supported-features
 	cd ${AROOT};
 	pip install -v -r requirements/xpu.txt
 	pip uninstall -y triton triton-xpu
-	pip install triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
-	pip install --no-build-isolation -e . -v
-	echo -e "\033[41m须手动测试vllm能否正常运行\033[0m"
+	pip install triton triton-xpu==3.8.0 --extra-index-url https://download.pytorch.org/whl/xpu
+	VLLM_TARGET_DEVICE=xpu pip install --no-build-isolation -e . -v
+	###build torch from source
+	#pip install triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
+	#pip install --no-build-isolation -e . -v
+	#echo -e "\033[41m须手动测试vllm能否正常运行\033[0m"
 
 	#问题与解决办法:
 	#1.  module 'triton' has no attribute 'next_power_of_2'
-	pip uninstall triton -y
-	pip install --force-reinstall triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
+	#pip uninstall triton -y
+	#pip install --force-reinstall triton-xpu==3.7.0 --extra-index-url https://download.pytorch.org/whl/xpu
 	#2. subprocess.CalledProcessError: Command '['/opt/intel/oneapi/compiler/2025.3/bin/icpx', '/tmp/tmpckbr17d1/main.cpp', '-O3', '-shared', '-Wno-psabi', '-fPIC', '-lsycl', '-lze_loader', '-L/opt/intel/oneapi/compiler/2025.3/lib', '-L/home/chaos/prjs/osa/vllm/.env/lib/python3.12/site-packages/triton/backends/intel/lib', '-I/usr/local/include', '-I/opt/intel/oneapi/compiler/2025.3/include', '-I/opt/intel/oneapi/compiler/2025.3/include/sycl', '-I/home/chaos/prjs/osa/vllm/.env/lib/python3.12/site-packages/triton/backends/intel/include', '-I/tmp/tmpckbr17d1', '-I/usr/include/python3.12', '-o', '/tmp/tmpckbr17d1/spirv_utils.cpython-312-x86_64-linux-gnu.so', '-Wl,-rpath,/opt/intel/oneapi/compiler/2025.3/lib', '-fsycl']' returned non-zero exit status 1.
 	#   -> 'Python.h' not found. root cause
 	#sudo apt-get install -y --no-install-recommends python3.12-dev
@@ -82,20 +85,15 @@ doBuild(){
     
     if [ "$1" = "kerns" ]; then
 	cd ${KROOT};
-	cmit=$(git rev-parse HEAD)
-	v170Commits="42285b6ec2b90bf87a2f5c021b8d405e8a1ca9b3"
-	v191Commits="98fc9b0f864f6554ca939425d95089532f501a01"
-	if [ ${v170Commits} != $cmit ]; then
-	    die "NOT evaluated"
-	fi
+	pip install -v -r requirements.txt
 	pip install --no-build-isolation -e . -v
     fi
 
     #Step 2, build the kerns source.
 }
 
-oneapis;
+#oneapis;
 pvi;
 gsp;
-doBuild "app";
+#doBuild "app"; #20260917: xpu-kernels的接口被重构, vllm须更新到新接口, 否则fused moe跑不起来
 doBuild "kerns" #20260605: 此后, 使用xpu-kernels的二进制文件来做baseline(v0.1.7 with 聪哥的patch), 用SYCL来卡法customized ops for vLLM 

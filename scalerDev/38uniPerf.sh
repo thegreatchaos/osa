@@ -25,7 +25,6 @@ qwen38(){
 	mkdir -p ${dirRoot};
 	common;
 	python qwen38-27B.py 2>&1 | tee ${dirRoot}/run_${TS}.log
-	meta ${dirRoot};
     else
 	echo -e "\033[31mStart profiing\033[0m"
 	common;

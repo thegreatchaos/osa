@@ -20,7 +20,7 @@ INPUT_LENS=[1024, 2048, 4096, 8192, 10240]#, 80_000],,, 80K 会OOM
 #INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
 MAX_OUTPUT=5120
 MML=INPUT_LENS[-1] + MAX_OUTPUT# max model len, 须满足MML > inputTokenLen + outputTokenLen
-GMU=0.9  # gpu memory utilization
+GMU=0.8  # gpu memory utilization
 MNS=1
 MNBT=MML*MNS# max number batched tokens, 
 LOOPS=5
@@ -43,7 +43,7 @@ def main():
               max_model_len=MML, 
               quantization="fp8", 
               trust_remote_code=True,
-              tensor_parallel_size=1, #GPU个数
+              tensor_parallel_size=2, #GPU个数
               block_size=64, 
               dtype="float16",
               max_num_batched_tokens=MNBT,  #每批次最大的token总数, 影响chunk prefill

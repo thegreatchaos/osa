@@ -1,6 +1,5 @@
 export ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source /opt/intel/oneapi/setvars.sh --force
-source /opt/intel/oneapi/vtune/vtune-vars.sh --force
 source ${ROOT}/.env/bin/activate
 #export ZE_AFFINITY_MASK=1 #0 for B60, 1 for B70.................. NOT working, nrigther this and CUDA_VISIBILE...
 #export CUDA_VISIBLE_DEVICES="1"
