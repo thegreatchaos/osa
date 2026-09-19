@@ -1,0 +1,40 @@
+ARG BASE_IMAGE=scaler-dev:latest
+ARG UNITRACE_BUILD_BASE=intel/omix:0.1.0-devel-ubuntu24.04
+FROM ${UNITRACE_BUILD_BASE} AS unitrace-build
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ARG PTI_GPU_REPO=https://github.com/intel/pti-gpu.git
+ARG PTI_GPU_COMMIT=d669f3b931ca2a190bde11baa39f548eb364570d
+ARG BUILD_WITH_MPI=1
+ARG UNITRACE_PREFIX=/opt/unitrace
+SHELL ["bash", "-c"]
+RUN source /opt/intel/oneapi/setvars.sh --force >/dev/null && \
+    mkdir -p /tmp/pti-gpu && cd /tmp/pti-gpu && \
+    git init -q . && \
+    git remote add origin "${PTI_GPU_REPO}" && \
+    git fetch -q --depth 1 origin "${PTI_GPU_COMMIT}" && \
+    git checkout -q FETCH_HEAD && \
+    cd tools/unitrace && \
+    cmake -S . -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="${UNITRACE_PREFIX}" \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DBUILD_WITH_MPI="${BUILD_WITH_MPI}" \
+        -DBUILD_WITH_L0=1 \
+        -DBUILD_WITH_ITT=1 \
+        -DBUILD_WITH_XPTI=1 \
+        -DBUILD_WITH_OPENCL=1 \
+        -DBUILD_WITH_OMP=1 \
+        -DBUILD_WITH_PERFETTO=ON && \
+    cmake --build build -j "$(nproc)" && \
+    cmake --install build
+RUN mkdir -p /models
+VOLUME ["/models"]
+FROM ${BASE_IMAGE}
+ARG BASE_IMAGE
+COPY --from=unitrace-build /opt/unitrace /opt/unitrace
+ENV PATH="/opt/unitrace/bin:${PATH}"
+RUN pip install --no-cache-dir --no-deps ittapi==1.2.2
+ENV ROOT=/vllm
+CMD ["/bin/bash", "-l"]
