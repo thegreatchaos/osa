@@ -26,15 +26,12 @@ qwen38(){
 	common;
 	dirRoot=/tmp/qwen38_27B_perf_${TS}
 	mkdir -p ${dirRoot};
-	unitrace    -d -h -s -v \
-		    --chrome-call-logging \
+	##-d -h -s -v, --chrome-itt-logging --start-paused  removed to align with Guancheng 
+	unitrace    --chrome-call-logging \
 		    --chrome-kernel-logging \
 		    --chrome-device-logging \
 		    --chrome-dnn-logging \
-		    --chrome-itt-logging \
-		    --start-paused \
 		    --follow-child-process 1 \
-		    --teardown-on-signal 15 \
 		    --output-dir-path ${dirRoot} \
 		    python qwen38-27B.py 2>&1 | tee ${dirRoot}/unitrace_${TS}.log
     fi
