@@ -3,10 +3,14 @@ source /opt/intel/oneapi/setvars.sh --force
 source ${ROOT}/.env/bin/activate
 #export ZE_AFFINITY_MASK=1 #0 for B60, 1 for B70.................. NOT working, nrigther this and CUDA_VISIBILE...
 #export CUDA_VISIBLE_DEVICES="1"
+TS=`date +%Y%m%d%H%M%S`
 export VLLM_TARGET_DEVICE=xpu
 export VLLM_XPU_ENABLE_XPU_GRAPH=1
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export VLLM_OFFLOAD_WEIGHTS_BEFORE_QUANT="0"
 export VLLM_ALLOW_LONG_MAX_MODEL_LEN="1"
 export VLLM_ENABLE_V1_MULTIPROCESSING=0
+export UNITRACE_SERVING_MODEL="Qwen3827b"
+export UNITRACE_PORT=9999
+export HF_HUB_OFFLINE=1
 export PS1='\033[32msd>\033[0m'

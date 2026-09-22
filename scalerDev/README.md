@@ -2,6 +2,10 @@
 baremental env setup
 ```
 bash setupDevEnv.sh
+source env.sh
+bash runSvrWithUnitrace.sh sessionName
+另一个窗口中
+bash benchWithSvr.sh sessionName
 ```
 Docker环境
 ```
