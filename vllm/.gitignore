@@ -2,3 +2,5 @@ deps/**
 *.log
 tags
 *.deb
+app/**
+kerns/**

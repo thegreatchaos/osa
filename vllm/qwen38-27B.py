@@ -15,9 +15,9 @@ from ittapi import collection_control as cc
 import ittapi.compat  as itt
 import time
 import random
-INPUT_LENS=[1024, 2048, 4096, 8192, 10240]#, 80_000],,, 80K 会OOM
+#INPUT_LENS=[1024, 2048, 4096, 8192, 10240]#, 80_000],,, 80K 会OOM
 #INPUT_LENS=[4000, 40000]
-#INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
+INPUT_LENS=[1024] #2048, 3854, 4096.... will failed for profiling
 MAX_OUTPUT=5120
 MML=INPUT_LENS[-1] + MAX_OUTPUT# max model len, 须满足MML > inputTokenLen + outputTokenLen
 GMU=0.8  # gpu memory utilization
