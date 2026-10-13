@@ -28,7 +28,7 @@ qwen38(){
     else
 	echo -e "\033[31mStart profiing\033[0m"
 	common;
-	dirRoot=/home/chaos/tmp/qwen38_27B_perf_${TS}
+	dirRoot=/home/chaos/tmp/qwen38_27B_unitrace_${TS}
 	mkdir -p ${dirRoot};
 	unitrace    -d -h -s -v \
 		    --chrome-call-logging \

@@ -1,6 +1,6 @@
 set -x
 source env.sh
-export BD=${ROOT}/tmpBuild
+export BD=${ROOT}/build
 export ID=${ROOT}/install
 
 
@@ -15,11 +15,12 @@ if [ ! -d "${BD}" ]; then
 
     export CC=icx
     export CXX=icpx
-    cmake   -DCMAKE_BUILD_TYPE=Debug \
-	    -DCMAKE_INSTALL_PREFIX=install \
-	    -G Ninja
+    cmake   -DCMAKE_BUILD_TYPE=Release \
+	    -DDNNL_GPU_RUNTIME=SYCL \
+	    -DCMAKE_INSTALL_PREFIX=${ID} \
 	    ../src
 fi
 
 cd ${BD}
 make -j$(( $(nproc) - 1 ))
+make install
