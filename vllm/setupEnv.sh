@@ -5,6 +5,7 @@ export KROOT=${ROOT}/kerns
 export AROOT=${ROOT}/app
 export VLLM_TARGET_DEVICE=xpu
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
+PINNED_XPU_KERNEL_TAG="v0.1.15"
 set -x
 
 die(){ # $1: 死因
@@ -33,6 +34,9 @@ gsp(){ # get source and patch
 
     if [ ! -d "kerns" ]; then
 	git clone https://github.com/vllm-project/vllm-xpu-kernels.git kerns
+	cd ${ROOT}/kerns;
+	git checkout ${PINNED_XPU_KERNEL_TAG}
+	cp ${ROOT}/test_int4_gemm_w4a16_trace.py ${ROOT}/kerns/tests/
     fi
     cd ${ROOT}
     if [ ! -d "app" ]; then
