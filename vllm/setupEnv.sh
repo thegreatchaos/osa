@@ -32,7 +32,7 @@ gsp(){ # get source and patch
     source ${ROOT}/env.sh
 
     if [ ! -d "kerns" ]; then
-	git clone https://github.com/thegreatchaos/vllm-xpu-kernels.git kerns
+	git clone https://github.com/vllm-project/vllm-xpu-kernels.git kerns
     fi
     cd ${ROOT}
     if [ ! -d "app" ]; then
