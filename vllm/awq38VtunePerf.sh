@@ -28,6 +28,7 @@ awqPerf(){
 
 	mkdir -p ${reportRoot}
 	vtune -r ${reportRoot} -data-limit=0 -collect gpu-hotspots -start-paused -- python qwen3827bAwqInt4.py 2>&1 | tee ${reportRoot}/vtune_collection.log
+	#vtune -r ${reportRoot} -data-limit=0 -collect uarch-exploration -start-paused -- python qwen3827bAwqInt4.py 2>&1 | tee ${reportRoot}/vtune_collection.log
 	cp qwen3827bAwqInt4.py ${reportRoot}
     fi
 }
