@@ -11,6 +11,8 @@ make -C benchmarks/w4a16_sycl
 ./benchmarks/w4a16_sycl/w4a16_bench --m=16 --n=96 --k=5120 --iterations=1500
 ```
 
+启动时输出实际 SYCL 队列使用的设备名称、厂商、平台、驱动版本、计算单元数和显存容量。
+
 默认 `m=1,n=16384,k=5120`，预热 10 次，计时 1500 次。支持
 `--warmup`、`--iterations`、`--skip-check` 和 `--help`。
 M/N/K 必须为正整数，K 必须是 32 的倍数，N 必须是 8 的倍数；

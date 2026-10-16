@@ -81,6 +81,15 @@ int main(int argc, char** argv) {
     }
     if (m<=0 || n<=0 || k<=0 || k%32 || n%8 || iterations<=0 || warmup<0)
       throw std::runtime_error("Require M,N,K>0, K%32=0, N%8=0, iterations>0, warmup>=0");
+    const auto device = compat::get_default_queue().get_device();
+    std::cout << "SYCL device: " << device.get_info<sycl::info::device::name>()
+              << "\nVendor: " << device.get_info<sycl::info::device::vendor>()
+              << "\nPlatform: " << device.get_platform().get_info<sycl::info::platform::name>()
+              << "\nDriver: " << device.get_info<sycl::info::device::driver_version>()
+              << "\nCompute units: " << device.get_info<sycl::info::device::max_compute_units>()
+              << "\nGlobal memory: "
+              << device.get_info<sycl::info::device::global_mem_size>() / (1024 * 1024)
+              << " MiB\n" << std::flush;
   using ElementAccumulator = float;      // <- data type of accumulator
   using ElementComputeEpilogue = float;  // <- data type of epilogue operations
   using ElementInputA = uint4_t;         // <- data type of elements in input matrix A
