@@ -1,6 +1,6 @@
 TLA_ROOT ?= $(abspath ../../../sycl-tla)
 CXX = /opt/intel/oneapi/compiler/latest/bin/icpx
-DEVICE ?= pvc
+DEVICE ?= bmg-g31 #b70
 CPPFLAGS += -DCUTLASS_ENABLE_SYCL -DSYCL_INTEL_TARGET -DCUTLASS_VERSIONS_GENERATED
 CPPFLAGS += -I$(TLA_ROOT)/src/include -I$(TLA_ROOT)/src/tools/util/include
 CXXFLAGS += -O3 -std=c++17 -fsycl -fsycl-targets=spir64_gen -fno-sycl-instrument-device-code
