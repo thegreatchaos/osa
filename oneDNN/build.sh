@@ -1,7 +1,11 @@
 set -x
 source env.sh
-export BD=${ROOT}/build
-export ID=${ROOT}/install
+isRelease="Release"
+if [ $# -ne 0 ]; then
+    isRelease="Debug"
+fi
+export BD=${ROOT}/build_${isRelease}
+export ID=${ROOT}/install_${isRelease}
 
 
 if [ ! -d "src" ]; then
@@ -15,7 +19,7 @@ if [ ! -d "${BD}" ]; then
 
     export CC=icx
     export CXX=icpx
-    cmake   -DCMAKE_BUILD_TYPE=Release \
+    cmake   -DCMAKE_BUILD_TYPE=${isRelease} \
 	    -DDNNL_GPU_RUNTIME=SYCL \
 	    -DCMAKE_INSTALL_PREFIX=${ID} \
 	    ../src
@@ -24,3 +28,5 @@ fi
 cd ${BD}
 make -j$(( $(nproc) - 1 ))
 make install
+cmake --build . --target benchdnn -j$(nproc)
+cp tests/benchdnn/benchdnn ${ID}/

@@ -14,6 +14,18 @@ common(){
     sudo echo "1" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
 }
 set -x
+gdb(){
+    gdb --args \
+	benchdnn --matmul --mode=P --engine=gpu \
+		 --dt=f16:u4:f16 \
+		 --stag=ab \
+		 --wtag=ba \
+		 --dtag=ab \
+		 --attr-scales=wei:per_ocic:f16:32x1 \
+		 --attr-zero-points=wei:per_ocic:u4:32x1 \
+		 --attr-fpmath=f16:true \
+		 1x5120:5120x16384
+}
 perf(){
     if [ ${isPerf} -eq 1 ]; then
 	common;
@@ -55,4 +67,5 @@ perf(){
 		     1x5120:5120x16384
     fi
 }
-perf;
+#perf;
+gdb
