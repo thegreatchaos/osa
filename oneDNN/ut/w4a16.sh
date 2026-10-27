@@ -14,9 +14,8 @@ common(){
     sudo echo "1" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
 }
 set -x
-gdb(){
-    gdb --args \
-	benchdnn --matmul --mode=P --engine=gpu \
+dbg(){
+    gdb --args benchdnn --matmul --mode=P --engine=gpu \
 		 --dt=f16:u4:f16 \
 		 --stag=ab \
 		 --wtag=ba \
@@ -68,4 +67,4 @@ perf(){
     fi
 }
 #perf;
-gdb
+dbg
