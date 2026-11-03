@@ -6,6 +6,7 @@ export AROOT=${ROOT}/app
 export VLLM_TARGET_DEVICE=xpu
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 PINNED_XPU_KERNEL_TAG="v0.1.15"
+PINNED_VLLM_TAG="v0.31.0"
 set -x
 
 die(){ # $1: 死因
@@ -41,6 +42,8 @@ gsp(){ # get source and patch
     cd ${ROOT}
     if [ ! -d "app" ]; then
 	git clone https://github.com/vllm-project/vllm.git app
+	cd ${ROOT}/app;
+	git checkout ${PINNED_VLL_TAG}
     fi
 }
 doBuild(){
