@@ -43,7 +43,7 @@ gsp(){ # get source and patch
     if [ ! -d "app" ]; then
 	git clone https://github.com/vllm-project/vllm.git app
 	cd ${ROOT}/app;
-	git checkout ${PINNED_VLL_TAG}
+	git checkout ${PINNED_VLLM_TAG}
     fi
 }
 doBuild(){
