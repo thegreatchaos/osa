@@ -21,7 +21,7 @@ INPUT_LENS=[51200] #2048, 3854, 4096.... will failed for profiling
 BATCH=1
 MML=90000
 GMU=0.9  # gpu memory utilization
-LOOPS=5
+LOOPS=10
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=MML-INPUT_LENS[-1])
 ttft_params     = SamplingParams(temperature=0.8, top_p=0.95, ignore_eos=True, max_tokens=1)
 def build_prompt_token_ids(tokenizer, target_len):
